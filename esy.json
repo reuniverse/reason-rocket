@@ -10,7 +10,33 @@
   "esy": {
     "buildsInSource": true,
     "build": [["node", "scripts/install.js"]],
-    "install": ["make install"],
+    "install": [
+      [
+        "cp",
+        "-r",
+        "-f",
+        "#{self.target_dir / 'bsconfig.json'}",
+        "#{self.install}"
+      ],
+      [
+        "cp",
+        "-r",
+        "-f",
+        "#{self.target_dir / 'esy.json'}",
+        "#{self.install / 'esy.json'}"
+      ],
+      [
+        "cp",
+        "-r",
+        "-f",
+        "#{self.target_dir / 'package.json'}",
+        "#{self.install / 'package.json'}"
+      ],
+      ["cp", "-r", "-f", "#{self.target_dir / 'jscomp'}", "#{self.install}"],
+      ["cp", "-r", "-f", "#{self.target_dir / 'lib'}", "#{self.install}"],
+      ["cp", "-r", "-f", "#{self.target_dir / 'scripts'}", "#{self.install}"],
+      ["cp", "-r", "-f", "#{self.target_dir / 'vendor'}", "#{self.install}"]
+    ],
     "exportedEnv": {
       "OCAMLLIB": {
         "val": "#{self.lib / 'ocaml' }",

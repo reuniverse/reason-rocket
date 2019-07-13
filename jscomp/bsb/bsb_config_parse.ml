@@ -30,7 +30,7 @@ let resolve_package cwd  package_name =
   let x =  Bsb_pkg.resolve_bs_package ~cwd package_name  in
   {
     Bsb_config_types.package_name ;
-    package_install_path = x // Bsb_config.lib_ocaml
+    package_install_path = (Bsb_build_util.get_build_artifacts_location x) // Bsb_config.lib_ocaml
   }
 
 
@@ -300,7 +300,7 @@ let interpret_json
         |> ignore
       end)
 
-    |? (Bsb_build_schemas.bs_dependencies, `Arr (fun s -> bs_dependencies :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> resolve_package cwd (Bsb_pkg_types.string_as_package s))))
+    |? (Bsb_build_schemas.bs_dependencies, `Arr (fun s -> bs_dependencies :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> Bsb_pkg.resolve_package cwd (Bsb_pkg_types.string_as_package s))))
     |? (Bsb_build_schemas.bs_dev_dependencies,
         `Arr (fun s ->
             if not  not_dev then 
@@ -362,7 +362,7 @@ let interpret_json
             ~namespace
             x in 
         if generate_watch_metadata then
-          Bsb_watcher_gen.generate_sourcedirs_meta cwd res ;     
+          Bsb_watcher_gen.generate_sourcedirs_meta (Bsb_build_util.get_build_artifacts_location cwd) res ;     
         begin match List.sort Ext_file_pp.interval_compare  res.intervals with
           | [] -> ()
           | queue ->

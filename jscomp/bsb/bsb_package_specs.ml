@@ -120,11 +120,7 @@ let bs_package_output = "-bs-package-output"
     {[ -bs-package-output commonjs:lib/js/jscomp/test ]}
 *)
 let package_flag ({format; in_source } : spec) dir =
-  Ext_string.inter2
-    bs_package_output 
-    (Ext_string.concat3
-       format
-       Ext_string.single_colon
+  let dir = Bsb_config.build_artifacts_dir (if in_source then dir else
        (if in_source then dir else
           if format = Literals.commonjs then 
              common_js_prefix dir 
@@ -132,7 +128,14 @@ let package_flag ({format; in_source } : spec) dir =
              es6_prefix dir 
            else if format = Literals.es6_global then 
              es6_global_prefix dir              
-           else assert false))
+           else assert false)) in
+  Ext_string.inter2
+    bs_package_output 
+    (Ext_string.concat3
+       format
+       Ext_string.single_colon
+       dir
+    )
 
 let package_flag_of_package_specs (package_specs : t) 
     (dirname : string ) : string  = 
@@ -157,7 +160,7 @@ let package_output ({format; in_source } : spec) output=
          es6_global_prefix  
        else assert false)
   in
-  (Bsb_config.proj_rel @@ prefix output )
+  (Bsb_config.build_artifacts_dir @@ prefix output )
 
 (**
     [get_list_of_output_js specs "src/hi/hello"]

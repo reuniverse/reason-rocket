@@ -289,7 +289,7 @@ let compile
     )
 ;;
 
-let (//) = Filename.concat  
+let (//) = Ext_path.combine
 
 let lambda_as_module 
     finalenv 

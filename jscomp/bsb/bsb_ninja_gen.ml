@@ -135,8 +135,8 @@ let output_ninja_and_namespace_map
       ~bs_suffix
       generators in 
   
-  
-  let cwd_lib_bs = cwd // Bsb_config.lib_bs in 
+  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
+  let cwd_lib_bs = build_artifacts_dir // Bsb_config.lib_bs in 
   let ppx_flags = Bsb_build_util.ppx_flags ppx_files in
   let refmt_flags = String.concat Ext_string.single_space refmt_flags in
   let oc = open_out_bin (cwd_lib_bs // Literals.build_ninja) in          
@@ -194,7 +194,8 @@ let output_ninja_and_namespace_map
            bs_dev_dependencies
            (fun x -> x.package_install_path));  
         Bsb_ninja_global_vars.g_ns , g_ns_flg ; 
-        Bsb_build_schemas.bsb_dir_group, "0"  (*TODO: avoid name conflict in the future *)
+        Bsb_build_schemas.bsb_dir_group, "0";  (*TODO: avoid name conflict in the future *)
+        Bsb_ninja_global_vars.build_artifacts_dir, build_artifacts_dir;
       |] oc 
   in        
   let  bs_groups, bsc_lib_dirs, static_resources =
@@ -270,7 +271,7 @@ let output_ninja_and_namespace_map
       ~output:Literals.build_ninja ;
   Ext_option.iter  namespace (fun ns -> 
       let namespace_dir =     
-        cwd // Bsb_config.lib_bs  in
+        build_artifacts_dir // Bsb_config.lib_bs  in
       Bsb_namespace_map_gen.output 
         ~dir:namespace_dir ns
         bs_file_groups; 

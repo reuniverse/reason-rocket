@@ -56,7 +56,7 @@ type package_name  =
 let runtime_package_name = "bs-platform"
 
 
-let (//) = Filename.concat    
+let (//) = Ext_path.combine
 
 (* in runtime lib, [es6] and [es6] are treated the same wway *)
 let runtime_dir_of_module_system (ms : module_system ) = 
@@ -220,7 +220,7 @@ let get_output_dir
     (info: t )
     ~package_dir module_system 
   =
-  Filename.concat package_dir 
+  Ext_path.combine package_dir 
     (get_js_path info module_system)
 
 

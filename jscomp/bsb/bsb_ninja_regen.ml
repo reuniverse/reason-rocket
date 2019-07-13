@@ -38,10 +38,11 @@ let regenerate_ninja
     ~generate_watch_metadata 
     ~forced cwd bsc_dir
   : Bsb_config_types.t option =
-  let output_deps = cwd // Bsb_config.lib_bs // bsdeps in
+  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
+  let output_deps = build_artifacts_dir // Bsb_config.lib_bs // bsdeps in
   let check_result  =
     Bsb_ninja_check.check 
-      ~cwd  
+      ~cwd:build_artifacts_dir
       ~forced ~file:output_deps in
   Bsb_log.info
     "@{<info>BSB check@} build spec : %a @." Bsb_ninja_check.pp_check_result check_result ;
@@ -55,9 +56,9 @@ let regenerate_ninja
   | Other _ -> 
     if check_result = Bsb_bsc_version_mismatch then begin 
       Bsb_log.info "@{<info>Different compiler version@}: clean current repo";
-      Bsb_clean.clean_self bsc_dir cwd; 
+      Bsb_clean.clean_self bsc_dir build_artifacts_dir; 
     end ; 
-    Bsb_build_util.mkp (cwd // Bsb_config.lib_bs); 
+    Bsb_build_util.mkp (build_artifacts_dir // Bsb_config.lib_bs); 
     let config = 
       Bsb_config_parse.interpret_json 
         ~override_package_specs

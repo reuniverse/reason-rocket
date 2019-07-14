@@ -100,6 +100,13 @@ let bsc_flg_to_merlin_ocamlc_flg bsc_flags  =
 let warning_to_merlin_flg (warning: Bsb_warning.t option) : string=     
   merlin_flg ^ Bsb_warning.get_warning_flag warning
 
+let get_build_path path =
+  let getenv_opt env = try Some(Sys.getenv env) with
+  | Not_found -> None
+  in
+  match getenv_opt "cur__install" with
+  | Some(p) -> p ^ path
+  | None -> path
 
 let merlin_file_gen ~cwd
     built_in_ppx
@@ -118,7 +125,7 @@ let merlin_file_gen ~cwd
       warning; 
      } : Bsb_config_types.t)
   =
-  if generate_merlin then begin     
+  if false then begin     
     let buffer = Buffer.create 1024 in
     output_merlin_namespace buffer namespace; 
     Ext_list.iter ppx_files (fun x ->
@@ -148,7 +155,7 @@ let merlin_file_gen ~cwd
         Buffer.add_string buffer path ;
       );      
     Ext_option.iter built_in_dependency (fun package -> 
-        let path = package.package_install_path in 
+        let path = get_build_path package.package_install_path in 
         Buffer.add_string buffer (merlin_s ^ path );
         Buffer.add_string buffer (merlin_b ^ path)                      
       );
@@ -156,7 +163,7 @@ let merlin_file_gen ~cwd
     Buffer.add_string buffer bsc_string_flag ;
     Buffer.add_string buffer (warning_to_merlin_flg  warning); 
     Ext_list.iter bs_dependencies (fun package ->
-        let path = package.package_install_path in
+        let path = get_build_path package.package_install_path in
         Buffer.add_string buffer merlin_s ;
         Buffer.add_string buffer path ;
         Buffer.add_string buffer merlin_b;
@@ -164,7 +171,7 @@ let merlin_file_gen ~cwd
       );
     Ext_list.iter bs_dev_dependencies (**TODO: shall we generate .merlin for dev packages ?*)
     (fun package ->    
-        let path = package.package_install_path in
+        let path = get_build_path package.package_install_path in
         Buffer.add_string buffer merlin_s ;
         Buffer.add_string buffer path ;
         Buffer.add_string buffer merlin_b;
@@ -180,6 +187,8 @@ let merlin_file_gen ~cwd
           end
       ) ;
     Buffer.add_string buffer "\n";
+    print_endline ("cwd: " ^ cwd);
+    package.
     revise_merlin (cwd // merlin) buffer 
   end
 

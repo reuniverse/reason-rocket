@@ -5213,55 +5213,55 @@ let custom_resolution =
   | "true"  -> true
   | _ -> false
 
-let regex_at = Str.regexp "@"
-let regex_unders = Str.regexp "_+"
-let regex_slash = Str.regexp "\\/"
-let regex_dot = Str.regexp "\\."
-let regex_hyphen = Str.regexp "-"
-let pkg_name_as_variable pkg =
-  Bsb_pkg_types.to_string pkg
-  |> Str.replace_first regex_at ""
-  |> Str.global_replace regex_unders "\\0_"
-  |> Str.global_replace regex_slash "__slash__"
-  |> Str.global_replace regex_dot "__dot__"
-  |> Str.global_replace regex_hyphen "_"
+let get_path_from_in_channel ic package_name =
+  let rec read_until_package () =
+    if String.trim (input_line ic) = {|["|} ^ package_name ^ {|",|} then
+      ()
+    else
+      read_until_package ()
+  in
+  let rec get_package_path () =
+    let str = String.trim (input_line ic) in
+    if String.length str > 15 & String.sub str 0 15 = "packageLocation" then
+      Some (String.sub str 18 (String.length str - 21))
+    else
+      get_package_path ()
+  in
+  read_until_package ()
+  |> get_package_path
 
-let resolve_bs_package ~cwd pkg =
+let resolve_bs_package ~cwd (pkg : t) =
   if custom_resolution then
     begin
       Bsb_log.info "@{<error>Using Custom Resolution@}@.";
-      let custom_pkg_loc = pkg_name_as_variable pkg ^ "__install" in
-      match Sys.getenv custom_pkg_loc with
-      | exception Not_found ->
+      match get_path_from_in_channel (open_in_bin (Sys.getcwd () ^ "/../../../pnp.js")) (Bsb_pkg_types.to_string pkg) with
+      | None ->
           begin
             Bsb_log.error
-              "@{<error>Custom resolution of package %s does not exist in var %s @}@."
-              (Bsb_pkg_types.to_string pkg)
-              custom_pkg_loc;
+              "@{<error>Custom resolution of package %s does not exist @}@."
+              (Bsb_pkg_types.to_string pkg);
             Bsb_exception.package_not_found ~pkg ~json:None
           end
-      | path when not (Sys.file_exists path) ->
+      | Some(path) when not (Sys.file_exists path) ->
          begin
            Bsb_log.error
-             "@{<error>Custom resolution of package %s does not exist on disk: %s=%s @}@."
+             "@{<error>Custom resolution of package %s does not exist on disk: %s @}@."
              (Bsb_pkg_types.to_string pkg)
-             custom_pkg_loc
              path;
            Bsb_exception.package_not_found ~pkg ~json:None
          end
-      | path ->
+      | Some(path) ->
         begin
           Bsb_log.info
-            "@{<error>Custom Resolution of package %s in var %s found at %s@}@."
+            "@{<error>Custom Resolution of package %s found at %s@}@."
             (Bsb_pkg_types.to_string pkg)
-            custom_pkg_loc
             path;
           path
         end
     end
   else
     resolve_bs_package ~cwd pkg
-end
+  end
 module Ext_json_parse : sig 
 #1 "ext_json_parse.mli"
 (* Copyright (C) 2015-2016 Bloomberg Finance L.P.
@@ -10331,6 +10331,9 @@ let (//) = Ext_path.combine
 
 
 let ninja_clean bsc_dir proj_dir =
+  let proj_dir = 
+    try Sys.getenv "cur__install" with
+    | Not_found -> proj_dir in
   try
     let cmd = bsc_dir // "ninja.exe" in
     let cwd = proj_dir // Bsb_config.lib_bs in
@@ -12328,6 +12331,13 @@ let bsc_flg_to_merlin_ocamlc_flg bsc_flags  =
 let warning_to_merlin_flg (warning: Bsb_warning.t option) : string=     
   merlin_flg ^ Bsb_warning.get_warning_flag warning
 
+let get_build_path path =
+  let getenv_opt env = try Some(Sys.getenv env) with
+  | Not_found -> None
+  in
+  match getenv_opt "cur__install" with
+  | Some(p) -> p ^ path
+  | None -> path
 
 let merlin_file_gen ~cwd
     built_in_ppx
@@ -12346,7 +12356,7 @@ let merlin_file_gen ~cwd
       warning; 
      } : Bsb_config_types.t)
   =
-  if generate_merlin then begin     
+  if false then begin     
     let buffer = Buffer.create 1024 in
     output_merlin_namespace buffer namespace; 
     Ext_list.iter ppx_files (fun x ->
@@ -12376,7 +12386,7 @@ let merlin_file_gen ~cwd
         Buffer.add_string buffer path ;
       );      
     Ext_option.iter built_in_dependency (fun package -> 
-        let path = package.package_install_path in 
+        let path = get_build_path package.package_install_path in 
         Buffer.add_string buffer (merlin_s ^ path );
         Buffer.add_string buffer (merlin_b ^ path)                      
       );
@@ -12384,7 +12394,7 @@ let merlin_file_gen ~cwd
     Buffer.add_string buffer bsc_string_flag ;
     Buffer.add_string buffer (warning_to_merlin_flg  warning); 
     Ext_list.iter bs_dependencies (fun package ->
-        let path = package.package_install_path in
+        let path = get_build_path package.package_install_path in
         Buffer.add_string buffer merlin_s ;
         Buffer.add_string buffer path ;
         Buffer.add_string buffer merlin_b;
@@ -12392,7 +12402,7 @@ let merlin_file_gen ~cwd
       );
     Ext_list.iter bs_dev_dependencies (**TODO: shall we generate .merlin for dev packages ?*)
     (fun package ->    
-        let path = package.package_install_path in
+        let path = get_build_path package.package_install_path in
         Buffer.add_string buffer merlin_s ;
         Buffer.add_string buffer path ;
         Buffer.add_string buffer merlin_b;
@@ -12408,6 +12418,7 @@ let merlin_file_gen ~cwd
           end
       ) ;
     Buffer.add_string buffer "\n";
+    print_endline ("cwd: " ^ cwd);
     revise_merlin (cwd // merlin) buffer 
   end
 
@@ -14333,9 +14344,10 @@ let output_ninja_and_namespace_map
       ~has_builtin:(built_in_dependency <> None)
       ~reason_react_jsx
       ~bs_suffix
-      generators in 
+      generators in
   
-  
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   let cwd_lib_bs = cwd // Bsb_config.lib_bs in 
   let ppx_flags = Bsb_build_util.ppx_flags ppx_files in
   let refmt_flags = String.concat Ext_string.single_space refmt_flags in
@@ -14563,6 +14575,8 @@ let regenerate_ninja
     ~generate_watch_metadata 
     ~forced cwd bsc_dir
   : Bsb_config_types.t option =
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   let output_deps = cwd // Bsb_config.lib_bs // bsdeps in
   let check_result  =
     Bsb_ninja_check.check 
@@ -17634,7 +17648,6 @@ let install_targets cwd (config : Bsb_config_types.t option) =
 
 
 let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
-
   let bsc_dir = Bsb_build_util.get_bsc_dir ~cwd in
   let vendor_ninja = bsc_dir // "ninja.exe" in
   let args = 
@@ -17644,11 +17657,15 @@ let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
   Bsb_build_util.walk_all_deps  cwd (fun {top; cwd} ->
       if not top then
         begin 
+          let cwd = 
+            try Sys.getenv "cur__install" with
+            | Not_found -> cwd in
           let config_opt = Bsb_ninja_regen.regenerate_ninja ~not_dev:true
               ~generate_watch_metadata:false
               ~override_package_specs:(Some deps) 
               ~forced:true
               cwd bsc_dir  in (* set true to force regenrate ninja file so we have [config_opt]*)
+          let () = print_endline ("RUNNING COMMAND!" ^ cwd) in
           let command = 
             {Bsb_unix.cmd = vendor_ninja;
              cwd = cwd // Bsb_config.lib_bs;
@@ -17714,7 +17731,9 @@ end = struct
 
 
 
-let cwd = Sys.getcwd ()
+let cwd = 
+  try Sys.getenv "cur__install" with
+  | Not_found -> Sys.getcwd ()
 let bsc_dir = Bsb_build_util.get_bsc_dir ~cwd 
 let () =  Bsb_log.setup () 
 let (//) = Ext_path.combine
@@ -17890,6 +17909,8 @@ let () =
                 ~override_package_specs:None 
                 ~not_dev:false cwd bsc_dir 
                 ~forced:!force_regenerate in
+            let cwd = try Sys.getenv "cur__install" with
+            | Not_found -> cwd in
             (* [-make-world] should never be combined with [-package-specs] *)
             if !make_world then
               Bsb_world.make_world_deps cwd config_opt ninja_args;

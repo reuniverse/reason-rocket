@@ -132,48 +132,48 @@ let custom_resolution =
   | "true"  -> true
   | _ -> false
 
-let regex_at = Str.regexp "@"
-let regex_unders = Str.regexp "_+"
-let regex_slash = Str.regexp "\\/"
-let regex_dot = Str.regexp "\\."
-let regex_hyphen = Str.regexp "-"
-let pkg_name_as_variable pkg =
-  Bsb_pkg_types.to_string pkg
-  |> Str.replace_first regex_at ""
-  |> Str.global_replace regex_unders "\\0_"
-  |> Str.global_replace regex_slash "__slash__"
-  |> Str.global_replace regex_dot "__dot__"
-  |> Str.global_replace regex_hyphen "_"
+let get_path_from_in_channel ic package_name =
+  let rec read_until_package () =
+    if String.trim (input_line ic) = {|["|} ^ package_name ^ {|",|} then
+      ()
+    else
+      read_until_package ()
+  in
+  let rec get_package_path () =
+    let str = String.trim (input_line ic) in
+    if String.length str > 15 & String.sub str 0 15 = "packageLocation" then
+      Some (String.sub str 18 (String.length str - 21))
+    else
+      get_package_path ()
+  in
+  read_until_package ()
+  |> get_package_path
 
 let resolve_bs_package ~cwd (pkg : t) =
   if custom_resolution then
     begin
       Bsb_log.info "@{<error>Using Custom Resolution@}@.";
-      let custom_pkg_loc = pkg_name_as_variable pkg ^ "__install" in
-      match Sys.getenv custom_pkg_loc with
-      | exception Not_found ->
+      match get_path_from_in_channel (open_in_bin (Sys.getcwd () ^ "/../../../pnp.js")) (Bsb_pkg_types.to_string pkg) with
+      | None ->
           begin
             Bsb_log.error
-              "@{<error>Custom resolution of package %s does not exist in var %s @}@."
-              (Bsb_pkg_types.to_string pkg)
-              custom_pkg_loc;
+              "@{<error>Custom resolution of package %s does not exist @}@."
+              (Bsb_pkg_types.to_string pkg);
             Bsb_exception.package_not_found ~pkg ~json:None
           end
-      | path when not (Sys.file_exists path) ->
+      | Some(path) when not (Sys.file_exists path) ->
          begin
            Bsb_log.error
-             "@{<error>Custom resolution of package %s does not exist on disk: %s=%s @}@."
+             "@{<error>Custom resolution of package %s does not exist on disk: %s @}@."
              (Bsb_pkg_types.to_string pkg)
-             custom_pkg_loc
              path;
            Bsb_exception.package_not_found ~pkg ~json:None
          end
-      | path ->
+      | Some(path) ->
         begin
           Bsb_log.info
-            "@{<error>Custom Resolution of package %s in var %s found at %s@}@."
+            "@{<error>Custom Resolution of package %s found at %s@}@."
             (Bsb_pkg_types.to_string pkg)
-            custom_pkg_loc
             path;
           path
         end

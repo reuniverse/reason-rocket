@@ -134,8 +134,11 @@ let output_ninja_and_namespace_map
       ~reason_react_jsx
       ~bs_suffix
       generators in 
+
+  let () = print_endline "here?????" in
   
-  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
+  let build_artifacts_dir = try Sys.getenv "cur__install" with
+  | Not_found -> Bsb_build_util.get_build_artifacts_location cwd in
   let cwd_lib_bs = build_artifacts_dir // Bsb_config.lib_bs in 
   let ppx_flags = Bsb_build_util.ppx_flags ppx_files in
   let refmt_flags = String.concat Ext_string.single_space refmt_flags in

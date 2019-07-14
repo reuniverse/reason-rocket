@@ -140,10 +140,6 @@ let getenv_opt env = try Some(Sys.getenv env) with
 
 Bsb_build_util.build_artifacts_dir := getenv_opt "cur__install" in;
 
-let () =
-  let Some install_dir = !Bsb_build_util.build_artifacts_dir in
-  print_endline install_dir
-
 (* see discussion #929, if we catch the exception, we don't have stacktrace... *)
 let () =
   let vendor_ninja = bsc_dir // "ninja.exe" in

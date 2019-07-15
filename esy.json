@@ -1,11 +1,11 @@
 {
   "name": "reason-rocket",
   "version": "5.1.0",
-  "devDependencies": {
-    "ocaml": "~4.2.3000"
+  "dependencies": {
+    "ocaml": "4.06.1"
   },
-  "peerDependencies": {
-    "ocaml": " >= 4.2.3"
+  "devDependencies": {
+    "ocaml": "4.06.1"
   },
   "esy": {
     "buildsInSource": true,

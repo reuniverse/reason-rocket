@@ -27,7 +27,7 @@ var is_windows = config.is_windows;
 var sys_extension = config.sys_extension;
 
 process.env.BS_RELEASE_BUILD = "true";
-var ocamlVersion = require("./buildocaml.js").getVersionPrefix();
+var ocamlVersion = "4.06.1"; // require("./buildocaml.js").getVersionPrefix();
 var stdlib_dir = path.join(
   jscomp_dir,
   ocamlVersion.includes("4.02") ? "stdlib-402" : "stdlib-406"
@@ -206,7 +206,7 @@ function install() {
  * raise an exception if not matched
  */
 function matchedCompilerExn() {
-  var output = cp.execSync("ocamlc.opt -v", { encoding: "ascii" });
+  var output = "4.06.1"; //cp.execSync("ocamlc.opt -v", { encoding: "ascii" });
 
   if (output.indexOf(ocamlVersion) >= 0) {
     console.log(output);
@@ -358,7 +358,7 @@ function provideCompiler() {
       ocamlopt: "ocamlopt.opt",
       ext: ".exe",
       INCL: ocamlVersion,
-      isWin : is_windows
+      isWin: is_windows
     });
 
     var filePath = path.join(lib_dir, "release.ninja");

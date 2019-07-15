@@ -24,7 +24,9 @@
 
 
 
-let cwd = Sys.getcwd ()
+let cwd = 
+  try Sys.getenv "cur__install" with
+  | Not_found -> Sys.getcwd ()
 let bsc_dir = Bsb_build_util.get_bsc_dir ~cwd 
 let () =  Bsb_log.setup () 
 let (//) = Ext_path.combine
@@ -138,7 +140,7 @@ let program_exit () =
 let getenv_opt env = try Some(Sys.getenv env) with
   | Not_found -> None
 
-Bsb_build_util.build_artifacts_dir := getenv_opt "cur__install" in;
+Bsb_build_util.build_artifacts_dir := getenv_opt "cur__install"
 
 (* see discussion #929, if we catch the exception, we don't have stacktrace... *)
 let () =

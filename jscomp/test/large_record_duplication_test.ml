@@ -61,7 +61,6 @@ let v0 : t = {
 let f0  (x : t) = 
   {x with x0 = 1}
 
-#if OCAML_VERSION =~ ">4.03.0"  then
 
 type t1 = A0 of {
   x0 : int; 
@@ -260,6 +259,5 @@ let get_x0 (x : exn) =
 ;; eq __LOC__ (get_x0 (f3 v3)) (Some 1)  
 ;; eq __LOC__ (get_x0 v3) (Some 9)
 ;; eq __LOC__ (get_x0 Not_found) None
-#end
 
 ;; Mt.from_pair_suites __MODULE__ !suites

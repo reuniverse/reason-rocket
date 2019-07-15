@@ -44,11 +44,7 @@ let print_if ppf flag printer arg =
   arg
 
 let batch_compile ppf main_file =
-#if OCAML_VERSION =~ ">4.03.0" then
   Compenv.readenv ppf (Before_compile ""); (*FIXME*)
-#else
-  Compenv.readenv ppf Before_compile; 
-#end  
   Compmisc.init_path  false;
   begin match main_file with       
     | Bsc_task_none ->  0

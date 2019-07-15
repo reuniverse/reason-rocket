@@ -38,6 +38,8 @@ let regenerate_ninja
     ~generate_watch_metadata 
     ~forced cwd bsc_dir
   : Bsb_config_types.t option =
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
   let output_deps = build_artifacts_dir // Bsb_config.lib_bs // bsdeps in
   let check_result  =

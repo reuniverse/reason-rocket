@@ -57,12 +57,7 @@ let handleTdcl light (tdcl : Parsetree.type_declaration) =
               Parsetree.label_declaration) (acc, maker, labels) ->
            let is_optional = Ast_attributes.has_bs_optional pld_attributes in
 
-           let newLabel = 
-#if BS_NATIVE then            
-            if is_optional then {pld_name with txt = Ast_compatible.opt_label pld_name.Asttypes.txt} else pld_name 
-#else            
-assert false (* FIXME *)
-#end
+           let newLabel = assert false (* FIXME *)
             in
 
             let maker, getter_type =
@@ -78,10 +73,7 @@ assert false (* FIXME *)
                   ptyp_attributes = [];
                 } in
                 Ast_compatible.opt_arrow ~loc:pld_loc label_name
-#if OCAML_VERSION =~ "<4.03.0" then
                   maker_optional_type
-#else             pld_type
-#end
                 maker,
                 Ast_compatible.arrow ~loc  core_type getter_optional_type
               else
@@ -151,23 +143,7 @@ assert false (* FIXME *)
              (Pat.var ({txt = "()"; loc = my_loc})) maker_body)
          else maker_body) in
 
-        let myMaker =
-#if BS_NATIVE then          
-
-         Str.value Nonrecursive [
-           Vb.mk
-             (Pat.var {loc; txt = type_name})
-             (Exp.constraint_ (
-               Ext_list.fold_right
-                 labels
-                 body_with_extra_unit_fun
-                 (fun arg_name rest ->
-                   (Ast_compatible.label_fun ~label:arg_name.Asttypes.txt ~loc:my_loc
-                     (Pat.var ({arg_name with txt = strip_option arg_name.Asttypes.txt})) rest))
-                 ) makeType)
-         ]
-#else         assert false
-#end
+        let myMaker = assert false
          in
         (myMaker :: setter_accessor))
 
@@ -186,11 +162,7 @@ let code_sig_transform sigi = match sigi with
       } as _makerVb) :: []))
     } ->
     Sig.value (Val.mk ~loc:pstr_loc name typ)
-  | _ -> 
-#if BS_NATIVE  then
-    Sig.type_ []
-#else assert false    
-#end
+  | _ -> assert false
 
 let handleTdclsInStr ~light tdcls =
   let tdcls, tdcls_sig, code, code_sig =

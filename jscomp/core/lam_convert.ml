@@ -192,9 +192,7 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
     drop_global_marker (Ext_list.singleton_exn args)
   (* prim ~primitive:(Psetglobal id) ~args loc *)
   | Pmakeblock (tag,info, mutable_flag
-#if OCAML_VERSION =~ ">4.03.0"  then 
     , _block_shape
-#end
   )
     -> 
     begin match info with 
@@ -219,28 +217,24 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
     | Blk_record s -> 
       let info : Lam_tag_info.t = Blk_record s in
       prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
-#if OCAML_VERSION =~ ">4.03.0"  then
     | Blk_record_inlined (s,ctor,i) ->
       let info : Lam_tag_info.t = Blk_record_inlined (s, ctor,i) in
       prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
     | Blk_record_ext s ->
       let info : Lam_tag_info.t = Blk_record_ext s in
       prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
-#end            
     | Blk_module s -> 
       let info : Lam_tag_info.t = Blk_module s in
       prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
     | Blk_extension_slot -> 
       let info : Lam_tag_info.t = Blk_extension_slot in
       ( 
-#if OCAML_VERSION =~ ">4.03.0" then
       match args with 
       | [ Lconst (Const_string name);
           Lprim {primitive = Pccall {prim_name = "caml_fresh_oo_id"} ; }
         ] -> 
         prim ~primitive:(Pcreate_extension name) ~args:[] loc
       | _ ->
-#end       
       prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
       )
 
@@ -252,18 +246,14 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
     -> prim ~primitive:(Pfield (id,info)) ~args loc
 
   | Psetfield (id,b,
-#if OCAML_VERSION =~ ">4.03.0"  then 
     _initialization_or_assignment,
-#end
       info)
     -> prim ~primitive:(Psetfield (id,info)) ~args loc
 
   | Pfloatfield (id,info)
     -> prim ~primitive:(Pfloatfield (id,info)) ~args loc
   | Psetfloatfield (id,
-#if OCAML_VERSION =~ ">4.03.0"  then 
     _initialization_or_assignment,
-#end  
       info)
     -> prim ~primitive:(Psetfloatfield (id,info)) ~args loc
   | Pduprecord (repr,i)
@@ -281,14 +271,10 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
   | Psubint -> prim ~primitive:Psubint ~args loc
   | Pmulint -> prim ~primitive:Pmulint ~args loc
   | Pdivint 
-#if OCAML_VERSION =~ ">4.03.0" then
     _is_safe (*FIXME*)
-#end    
     -> prim ~primitive:Pdivint ~args loc
   | Pmodint 
-#if OCAML_VERSION =~ ">4.03.0" then
     _is_safe (*FIXME*)
-#end  
     -> prim ~primitive:Pmodint ~args loc
   | Pandint -> prim ~primitive:Pandint ~args loc
   | Porint -> prim ~primitive:Porint ~args loc
@@ -298,11 +284,6 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
   | Pasrint -> prim ~primitive:Pasrint ~args loc
   | Pstringlength -> prim ~primitive:Pstringlength ~args loc
   | Pstringrefu -> prim ~primitive:Pstringrefu ~args loc
-#if OCAML_VERSION =~ ">4.03.0" then
-#else
-  | Pstringsetu
-  | Pstringsets -> assert false
-#end
   | Pabsfloat -> assert false
   | Pstringrefs -> prim ~primitive:Pstringrefs ~args loc
   | Pbyteslength -> prim ~primitive:Pbyteslength ~args loc
@@ -328,11 +309,7 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
   | Poffsetref x -> prim ~primitive:(Poffsetref x) ~args  loc
   | Pfloatcomp x -> prim ~primitive:(Pfloatcomp x) ~args loc
   | Pmakearray 
-#if OCAML_VERSION =~ ">4.03.0"  then
-    (x, _mutable_flag) (*FIXME*)
-#else
-    x 
-#end    
+    (x, _mutable_flag) (*FIXME*) 
     -> prim ~primitive:(Pmakearray x) ~args  loc
   | Parraylength _ -> prim ~primitive:Parraylength ~args loc
   | Parrayrefu _ -> prim ~primitive:(Parrayrefu ) ~args loc
@@ -346,19 +323,11 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
   | Psubbint x -> prim ~primitive:(Psubbint x) ~args loc
   | Pmulbint x -> prim ~primitive:(Pmulbint x) ~args loc
   | Pdivbint 
-#if OCAML_VERSION =~ ">4.03.0" then
-    {size = x; is_safe } (*FIXME*)
-#else
-    x 
-#end    
+    {size = x; is_safe } (*FIXME*) 
     ->
      prim ~primitive:(Pdivbint x) ~args loc
   | Pmodbint 
-#if OCAML_VERSION =~ ">4.03.0" then
     {size = x; is_safe } (*FIXME*)
-#else
-    x 
-#end  
     -> prim ~primitive:(Pmodbint x) ~args loc
   | Pandbint x -> prim ~primitive:(Pandbint x) ~args loc
   | Porbint x -> prim ~primitive:(Porbint x) ~args loc
@@ -391,7 +360,6 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
   | Pbintcomp (a,b) -> prim ~primitive:(Pbintcomp (a,b)) ~args loc
   | Pbigarrayref (a,b,c,d) -> prim ~primitive:(Pbigarrayref (a,b,c,d)) ~args loc
   | Pbigarrayset (a,b,c,d) -> prim ~primitive:(Pbigarrayset (a,b,c,d)) ~args loc
-#if OCAML_VERSION =~ ">4.03.0" then 
   | Pfield_computed -> 
     prim ~primitive:Pfield_computed ~args loc 
   | Popaque -> Ext_list.singleton_exn args      
@@ -399,7 +367,6 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : Lam.t =
     prim ~primitive:Psetfield_computed ~args loc 
   | Pduparray _ ->  assert false 
     (* Does not exist since we compile array in js backend unlike native backend *)
-#end
 
 
 
@@ -425,18 +392,7 @@ let convert (exports : Ident_set.t) (lam : Lambda.lambda) : Lam.t * Lam_module_i
         (* Here the invariant we should keep is that all exception
            created should be captured
         *)
-          (
-#if OCAML_VERSION =~ ">4.03.0" then
-#else
-          match prim_name  ,  args with
-          | "caml_set_oo_id" ,
-            [ Lprim (Pmakeblock(tag,Blk_extension_slot, _),
-                     Lconst (Const_base(Const_string(name,_))) :: _,
-                     loc
-                    )]
-            -> prim ~primitive:(Pcreate_extension name) ~args:[] loc
-          | _ , _->
-#end          
+          (      
             let args = Ext_list.map args convert_aux in
             prim ~primitive:(Pccall a_prim) ~args loc
           )
@@ -557,31 +513,19 @@ let convert (exports : Ident_set.t) (lam : Lambda.lambda) : Lam.t * Lam_module_i
     | Lconst x ->
       Lam.const (Lam_constant_convert.convert_constant x )
     | Lapply 
-#if OCAML_VERSION =~ ">4.03.0" then
         {ap_func = fn; ap_args = args; ap_loc = loc; }
-#else
-    (fn,args,loc)
-#end    
       ->
           (** we need do this eargly in case [aux fn] add some wrapper *)
           Lam.apply (convert_aux fn) (Ext_list.map args convert_aux ) loc App_na  
     | Lfunction 
-#if OCAML_VERSION =~ ">4.03.0" then 
     {kind; params; body }
-#else
-    (kind,  params,body)
-#end    
       ->  
       assert (kind = Curried);
       Lam.function_
             ~arity:(List.length params)  ~params
             ~body:(convert_aux body)
     | Llet 
-#if OCAML_VERSION =~ ">4.03.0" then
       (kind,_value_kind, id,e,body) (*FIXME*)
-#else
-      (kind,id,e,body)
-#end      
       -> convert_let kind id e body
 
     | Lletrec (bindings,body)
@@ -613,11 +557,7 @@ let convert (exports : Ident_set.t) (lam : Lambda.lambda) : Lam.t * Lam_module_i
       let args = Ext_list.map args convert_aux in
       lam_prim ~primitive ~args loc
     | Lswitch 
-#if OCAML_VERSION =~ ">4.03.0" then
       (e,s, _loc)
-#else
-      (e,s) 
-#end      
       -> convert_switch e s 
     | Lstringswitch (e, cases, default, _ ) ->
       Lam.stringswitch 

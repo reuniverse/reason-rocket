@@ -131,10 +131,7 @@ let handleTdcl
             if is_optional then
               let optional_type = Ast_core_type.lift_option_type pld_type in
               (Ast_compatible.opt_arrow ~loc:pld_loc label_name 
-#if OCAML_VERSION =~ "<4.03.0" then
                   optional_type
-#else             pld_type  
-#end              
 
                 maker,
               let aux light deprec pld_name : Parsetree.value_description = 

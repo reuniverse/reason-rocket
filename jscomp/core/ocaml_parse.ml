@@ -37,11 +37,6 @@ let parse_implementation ppf sourcefile =
   Ppx_entry.rewrite_implementation
     (
       Pparse.parse_implementation ~tool_name:Js_config.tool_name ppf sourcefile
-#if undefined BS_RELEASE_BUILD then       
-      |> print_if ppf Clflags.dump_parsetree Printast.implementation
-      |> print_if ppf Clflags.dump_source Pprintast.structure
-
-#end
       )
 
 let parse_implementation_from_string  str = 

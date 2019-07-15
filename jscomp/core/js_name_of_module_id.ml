@@ -129,14 +129,7 @@ let string_of_module_id
 
         | Package_found pkg, Package_script 
           ->    
-#if BS_NATIVE then
-          if Filename.is_relative dep_path then 
-            pkg.pkg_rel_path // js_file
-          else 
-            pkg.dep_path // js_file
-#else
           pkg.pkg_rel_path // js_file
-#end
 
         | Package_found dep_pkg,
           Package_found cur_pkg -> 
@@ -150,15 +143,8 @@ let string_of_module_id
               *)
           else  
             begin match module_system with 
-              | NodeJS | Es6 -> 
-#if BS_NATIVE then
-          if Filename.is_relative dep_path then 
-            dep_pkg.pkg_rel_path // js_file
-          else 
-            dep_path // js_file
-#else
+              | NodeJS | Es6 ->
                 dep_pkg.pkg_rel_path // js_file
-#end
               (** Note we did a post-processing when working on Windows *)
               | Es6_global 
               -> 
@@ -196,19 +182,3 @@ let string_of_module_id
               basename  
           | None -> 
             Bs_exception.error (Js_not_found js_file))
-
-  
-
-(* Override it in browser *)
-#if BS_COMPILER_IN_BROWSER then   
-let string_of_module_id_in_browser (x : Lam_module_ident.t) =  
-   match x.kind with
-   | External name -> name
-   | Runtime | Ml -> 
-                   "./stdlib/" ^  Ext_string.uncapitalize_ascii x.id.name ^ ".js"
-let string_of_module_id 
-    (id : Lam_module_ident.t)
-    ~output_dir:(_:string)
-    (_module_system : Js_packages_info.module_system)
-     = string_of_module_id_in_browser id
-#end

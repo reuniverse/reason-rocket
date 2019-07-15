@@ -118,12 +118,6 @@ let no_side_effects (rest : Lam_group.t list) : string option =
 
 
 let _d  = fun env s lam -> 
-#if undefined BS_RELEASE_BUILD then 
-    Lam_util.dump env s lam ;
-    Ext_log.dwarn ~__POS__ "START CHECKING PASS %s@." s;
-    ignore @@ Lam_check.check (Js_config.get_current_file ()) lam;
-    Ext_log.dwarn ~__POS__ "FINISH CHECKING PASS %s@." s;
-#end
     lam
 
 (** Actually simplify_lets is kind of global optimization since it requires you to know whether 
@@ -136,11 +130,7 @@ let compile
   let export_idents = Translmod.get_export_identifiers() in
   let export_ident_sets = Ident_set.of_list export_idents in 
   (* To make toplevel happy - reentrant for js-demo *)
-  let () = 
-#if undefined BS_RELEASE_BUILD then     
-    Ext_list.iter export_idents 
-      (fun id -> Ext_log.dwarn ~__POS__ "export idents: %s/%d"  id.name id.stamp) ;
-#end      
+  let () =  
     Lam_compile_env.reset () ;
   in 
   let lam, may_required_modules = Lam_convert.convert export_ident_sets lam in 
@@ -193,44 +183,19 @@ let compile
     (* |> Lam_group_pass.scc_pass
        |> _d "scc" *)
     |> Lam_pass_exits.simplify_exits
-    |> _d env "simplify_lets"
-#if undefined BS_RELEASE_BUILD then    
-    |> (fun lam -> 
-       let () = 
-        Ext_log.dwarn ~__POS__ "Before coercion: %a@." Lam_stats.print meta in 
-      Lam_check.check (Js_config.get_current_file ()) lam
-    ) 
-#end    
+    |> _d env "simplify_lets" 
   in
 
   let ({Lam_coercion.groups = groups } as coerced_input , meta) = 
     Lam_coercion.coerce_and_group_big_lambda  meta lam
   in 
 
-#if undefined BS_RELEASE_BUILD then   
-  let () =
-    Ext_log.dwarn ~__POS__ "After coercion: %a@." Lam_stats.print meta ;
-    if Js_config.is_same_file () then
-      let f =
-        Ext_filename.new_extension filename  ".lambda" in
-      Ext_pervasives.with_file_as_pp f begin fun fmt ->
-        Format.pp_print_list ~pp_sep:Format.pp_print_newline
-          (Lam_group.pp_group env) fmt (coerced_input.groups) 
-      end;
-  in
-#end  
   let maybe_pure = no_side_effects groups in
-#if undefined BS_RELEASE_BUILD then 
-  let () = Ext_log.dwarn ~__POS__ "\n@[[TIME:]Pre-compile: %f@]@."  (Sys.time () *. 1000.) in      
-#end  
   let body  =     
     Ext_list.map groups (fun group -> compile_group meta group)
     |> Js_output.concat
     |> Js_output.output_as_block
-  in
-#if undefined BS_RELEASE_BUILD then 
-  let () = Ext_log.dwarn ~__POS__ "\n@[[TIME:]Post-compile: %f@]@."  (Sys.time () *. 1000.) in      
-#end    
+  in 
   (* The file is not big at all compared with [cmo] *)
   (* Ext_marshal.to_file (Ext_path.chop_extension filename ^ ".mj")  js; *)
   let meta_exports = meta.exports in 
@@ -324,18 +289,11 @@ let lambda_as_module
            output_chan  stdout);
         if not @@ !Clflags.dont_write_files then 
           Ext_pervasives.with_file_as_chan
-#if BS_NATIVE then
-            (if Filename.is_relative _path then Lazy.force Ext_filename.package_dir // _path // basename
-             (* #913 only generate little-case js file *)
-            else _path // basename) output_chan )
-#else
-            (Lazy.force Ext_path.package_dir //
+            (Lazy.force Ext_filename.package_dir //
              _path //
              basename
              (* #913 only generate little-case js file *)
             ) output_chan )
-  
-#end
 
 (* We can use {!Env.current_unit = "Pervasives"} to tell if it is some specific module, 
     We need handle some definitions in standard libraries in a special way, most are io specific, 

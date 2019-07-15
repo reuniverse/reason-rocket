@@ -66,14 +66,10 @@ let () =
   Clflags.record_event_when_debug := false
 
 let error_of_exn e =   
-#if OCAML_VERSION =~ ">4.03.0" then
   match Location.error_of_exn e with 
   | Some (`Ok e) -> Some e 
   | Some `Already_displayed
   | None -> None
-#else  
-  Location.error_of_exn e
-#end  
 
 type react_ppx_version = V2 | V3
 
@@ -111,11 +107,7 @@ let implementation ~use_super_errors ?(react_ppx_version=V3) prefix impl str  : 
   typed_tree
   |>  Translmod.transl_implementation modulename
   |> (* Printlambda.lambda ppf *) (fun 
-#if OCAML_VERSION =~ ">4.03.0" then
     {Lambda.code = lam}
-#else    
-    lam 
-#end    
     ->
       let buffer = Buffer.create 1000 in
       let () = Js_dump_program.pp_deps_program

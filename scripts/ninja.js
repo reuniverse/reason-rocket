@@ -106,7 +106,7 @@ function generateVisitorPattern() {
  * need do test build in CI either
  *
  */
-var useEnv = false;
+var useEnv = true;
 
 /**
  * Note this file is not used in ninja file

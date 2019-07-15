@@ -5064,6 +5064,65 @@ let resolve_bs_package ~cwd (package : t) =
 (*   in *)
 (*   aux cwd *)
 
+(* Some package managers will implement "postinstall" caches, that do not
+ * keep their build artifacts in the local node_modules. Similar to
+ * npm_config_prefix, bs_custom_resolution allows these to specify the
+ * exact location of build cache, but on a per-package basis. Implemented as
+ * environment lookup to avoid invasive changes to bsconfig and mandates. *)
+let custom_resolution =
+ match Sys.getenv "bs_custom_resolution" with
+  | exception Not_found  -> false
+  | "true"  -> true
+  | _ -> false
+
+let get_path_from_in_channel ic package_name =
+  let rec read_until_package () =
+    if String.trim (input_line ic) = {|["|} ^ package_name ^ {|",|} then
+      ()
+    else
+      read_until_package ()
+  in
+  let rec get_package_path () =
+    let str = String.trim (input_line ic) in
+    if String.length str > 15 & String.sub str 0 15 = "packageLocation" then
+      Some (String.sub str 18 (String.length str - 21))
+    else
+      get_package_path ()
+  in
+  read_until_package ()
+  |> get_package_path
+
+let resolve_bs_package ~cwd (pkg : t) =
+  if custom_resolution then
+    begin
+      Bsb_log.info "@{<error>Using Custom Resolution@}@.";
+      match get_path_from_in_channel (open_in_bin (Sys.getcwd () ^ "/../../../pnp.js")) (Bsb_pkg_types.to_string pkg) with
+      | None ->
+          begin
+            Bsb_log.error
+              "@{<error>Custom resolution of package %s does not exist @}@."
+              (Bsb_pkg_types.to_string pkg);
+            Bsb_exception.package_not_found ~pkg ~json:None
+          end
+      | Some(path) when not (Sys.file_exists path) ->
+         begin
+           Bsb_log.error
+             "@{<error>Custom resolution of package %s does not exist on disk: %s @}@."
+             (Bsb_pkg_types.to_string pkg)
+             path;
+           Bsb_exception.package_not_found ~pkg ~json:None
+         end
+      | Some(path) ->
+        begin
+          Bsb_log.info
+            "@{<error>Custom Resolution of package %s found at %s@}@."
+            (Bsb_pkg_types.to_string pkg)
+            path;
+          path
+        end
+    end
+  else
+    resolve_bs_package ~cwd pkg
 end
 module Ext_json_parse : sig 
 #1 "ext_json_parse.mli"
@@ -7533,7 +7592,7 @@ let adjust_module_info
       name_sans_extension suffix
 
 let collect_module_by_filename 
-  ~(dir : string) (map : t) (file_name : string) : t  = 
+  ~(dir : string) (map : t) (file_name : string) : t  =ß
   let module_name, upper = 
     Ext_modulename.module_name_of_file_if_any_with_upper file_name in 
   let suffix = Ext_path.get_extension file_name in 
@@ -10320,6 +10379,8 @@ let (//) = Ext_path.combine
 
 
 let ninja_clean bsc_dir proj_dir =
+  let proj_dir = try Sys.getenv "cur__install" with
+  | Not_found -> proj_dir in
   try
     let cmd = bsc_dir // "ninja.exe" in
     let cwd = proj_dir // Bsb_config.lib_bs in
@@ -11877,6 +11938,9 @@ let interpret_json
 
   : Bsb_config_types.t =
 
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
+
   let reason_react_jsx : Bsb_config_types.reason_react_jsx option ref = ref None in 
   let config_json = cwd // Literals.bsconfig_json in
   let refmt_flags = ref Bsb_default.refmt_flags in
@@ -11971,8 +12035,14 @@ let interpret_json
      | None 
      | Some _ ->
         begin
+          Bsb_log.error
+              "@{<error>current_package: %s @}@."
+              (Bsb_pkg_types.to_string current_package);
           let stdlib_path = 
-              Bsb_pkg.resolve_bs_package ~cwd current_package in 
+              Bsb_pkg.resolve_bs_package ~cwd current_package in
+          Bsb_log.error
+              "@{<error>stdlib_path: %s @}@."
+              stdlib_path;
           let json_spec = 
               Ext_json_parse.parse_json_from_file 
               (Filename.concat stdlib_path Literals.package_json) in 
@@ -11992,9 +12062,14 @@ let interpret_json
               exit 2)
                 
             | _ -> assert false);
+            let lib_ocaml = try Sys.getenv "OCAMLLIB" with
+            | Not_found -> stdlib_path // Bsb_config.lib_ocaml in
+            Bsb_log.error
+              "@{<error>lib_ocaml: %s @}@."
+              Bsb_config.lib_ocaml;
             built_in_package := Some {
               Bsb_config_types.package_name = current_package;
-              package_install_path = stdlib_path // Bsb_config.lib_ocaml;
+              package_install_path = lib_ocaml;
             }
              
           | _ -> assert false 
@@ -12319,7 +12394,7 @@ let merlin_file_gen ~cwd
       warning; 
      } : Bsb_config_types.t)
   =
-  if generate_merlin then begin     
+  if false then begin     
     let buffer = Buffer.create 1024 in
     output_merlin_namespace buffer namespace; 
     Ext_list.iter ppx_files (fun x ->
@@ -13897,6 +13972,8 @@ let output_ninja_and_namespace_map
       gentype_config; 
     } : Bsb_config_types.t) : unit 
   =
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   let custom_rules = Bsb_ninja_rule.make_custom_rules generators in 
   let bsc = bsc_dir // bsc_exe in   (* The path to [bsc.exe] independent of config  *)
   let bsdep = bsc_dir // bsb_helper_exe in (* The path to [bsb_heler.exe] *)
@@ -14123,6 +14200,8 @@ let regenerate_ninja
     ~generate_watch_metadata 
     ~forced cwd bsc_dir
   : Bsb_config_types.t option =
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   let output_deps = cwd // Bsb_config.lib_bs // bsdeps in
   let check_result  =
     Bsb_ninja_check.check 
@@ -17204,6 +17283,8 @@ let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
               ~override_package_specs:(Some deps) 
               ~forced:true
               cwd bsc_dir  in (* set true to force regenrate ninja file so we have [config_opt]*)
+          let cwd = try Sys.getenv "cur__install" with
+          | Not_found -> cwd in
           let command = 
             {Bsb_unix.cmd = vendor_ninja;
              cwd = cwd // Bsb_config.lib_bs;
@@ -17269,7 +17350,9 @@ end = struct
 
 
 
-let cwd = Sys.getcwd ()
+let cwd = 
+  try Sys.getenv "cur__install" with
+  | Not_found -> Sys.getcwd ()
 let bsc_dir = Bsb_build_util.get_bsc_dir ~cwd 
 let () =  Bsb_log.setup () 
 let (//) = Ext_path.combine
@@ -17383,7 +17466,7 @@ let program_exit () =
 (* see discussion #929, if we catch the exception, we don't have stacktrace... *)
 let () =
 
-  let vendor_ninja = bsc_dir // "ninja.exe" in  
+  let vendor_ninja = bsc_dir // "ninja.exe" in
   try begin 
     match Sys.argv with 
     | [| _ |] ->  (* specialize this path [bsb.exe] which is used in watcher *)

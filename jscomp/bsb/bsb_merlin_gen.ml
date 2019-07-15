@@ -125,7 +125,7 @@ let merlin_file_gen ~cwd
       warning; 
      } : Bsb_config_types.t)
   =
-  if false then begin     
+  if generate_merlin then begin     
     let buffer = Buffer.create 1024 in
     output_merlin_namespace buffer namespace; 
     Ext_list.iter ppx_files (fun x ->

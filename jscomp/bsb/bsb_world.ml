@@ -80,6 +80,8 @@ let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
               ~override_package_specs:(Some deps) 
               ~forced:true
               cwd bsc_dir  in (* set true to force regenrate ninja file so we have [config_opt]*)
+          let cwd = try Sys.getenv "cur__install" with
+          | Not_found -> cwd in
           let command = 
             {Bsb_unix.cmd = vendor_ninja;
              cwd = build_artifacts_dir // Bsb_config.lib_bs;

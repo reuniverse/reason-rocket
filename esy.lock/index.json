@@ -1,5 +1,5 @@
 {
-  "checksum": "7ac9967a33f1e0428ca04d11fba8bf7d",
+  "checksum": "45eee0dcbd079c4a1923eaf62faf31fe",
   "root": "reason-rocket@link-dev:./esy.json",
   "node": {
     "reason-rocket@link-dev:./esy.json": {
@@ -8,17 +8,23 @@
       "version": "link-dev:./esy.json",
       "source": { "type": "link-dev", "path": ".", "manifest": "esy.json" },
       "overrides": [],
-      "dependencies": [ "ocaml@4.6.1@d41d8cd9" ],
-      "devDependencies": [ "ocaml@4.6.1@d41d8cd9" ]
+      "dependencies": [
+        "ocaml@github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec@d41d8cd9"
+      ],
+      "devDependencies": [
+        "ocaml@github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec@d41d8cd9"
+      ]
     },
-    "ocaml@4.6.1@d41d8cd9": {
-      "id": "ocaml@4.6.1@d41d8cd9",
+    "ocaml@github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec@d41d8cd9": {
+      "id":
+        "ocaml@github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec@d41d8cd9",
       "name": "ocaml",
-      "version": "4.6.1",
+      "version":
+        "github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec",
       "source": {
         "type": "install",
         "source": [
-          "archive:https://registry.npmjs.org/ocaml/-/ocaml-4.6.1.tgz#sha1:8babea2c41a9f734313b4fc1841ec0963c9d7a07"
+          "github:ulrikstrid/ocaml#cc69fb24bf6d5910d6f4a0e95599a12288e1c8ec"
         ]
       },
       "overrides": [],

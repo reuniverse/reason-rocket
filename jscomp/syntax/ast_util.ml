@@ -51,12 +51,7 @@ let arity_lit = "Arity_"
 let mk_args loc (n : int) (tys : Parsetree.core_type list) : Parsetree.core_type = 
   Typ.variant ~loc 
     [ Rtag (
-#if OCAML_VERSION =~ ">4.03.0" then
-      {loc; txt = arity_lit ^ string_of_int n}
-#else
-      arity_lit ^ string_of_int n
-#end      
-      ,
+      {loc; txt = arity_lit ^ string_of_int n},
        [], (n = 0),  tys)] Closed None
 
 let generic_lift txt loc args result  = 
@@ -103,11 +98,7 @@ let js_property loc obj (name : string) =
            {loc;
             txt = Ldot (Ast_literal.Lid.js_internal, Literals.unsafe_downgrade)})
         obj), 
-#if OCAML_VERSION =~ ">4.03.0" then
         {loc; txt = name}
-#else         
-        name
-#end
         )
 
 (* TODO: 

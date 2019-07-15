@@ -48,18 +48,7 @@ let namespace = ref None
 let anonymous filename =
   collect_file filename
 let usage = "Usage: bsb_helper.exe [options] \nOptions are:"
-#if BS_NATIVE then
-let link link_byte_or_native = 
-  begin match !main_module with
-    | None -> failwith "Linking needs a main module. Please add -main-module MyMainModule to the invocation."
-    | Some main_module ->
-      Bsb_helper_linker.link 
-        link_byte_or_native
-        ~main_module:main_module
-        ~includes:!includes
-        ~batch_files:!batch_files
-  end
-#end  
+
 let () =
   Arg.parse [
     "-g", Arg.Int (fun i -> dev_group := i ),
@@ -67,76 +56,6 @@ let () =
     ;
     "-bs-ns", Arg.String (fun s -> namespace := Some s),
     " Set namespace";
-#if BS_NATIVE then    
-    "-MD-bytecode", Arg.String (
-      fun x -> 
-        Bsb_helper_depfile_gen.make
-          Bytecode 
-          x (Bsb_dir_index.of_int !dev_group ) !namespace),          
-    " (internal)Generate dep file for ninja format(from .ml[i]deps)";
-    "-MD-native", Arg.String (fun x -> 
-        Bsb_helper_depfile_gen.make
-          Native 
-           x (Bsb_dir_index.of_int !dev_group )
-           !namespace
-           ),
-    " (internal)Generate dep file for ninja format(from .ml[i]deps)";
-
-    (**
-       The args below are used for packing/linking.
-
-       This makes bsb_helper act as an ocaml linker where we automatically figure
-       out the dependencies graph to do a topological sort before calling 
-       ocamlc/ocamlopt.
-    *)
-    "-bs-main", (Arg.String set_main_module),
-    " set the main entry module. Only used in conjunction with -link-bytecode and -link-native";
-
-    (* This is a way to add a directory to the search path. This is used for the 
-       compiler to look for cmi files. It's also used to look for a file called `lib.cma` to 
-       link with the current executable.
-
-       For example if called like so
-
-          bsb_helper -I theExtLib myMainFile.cmo -link-bytecode
-
-       Then we'll go look for `theExtLib/lib.cma` to link with the final exec.
-    *)
-    "-I",  (Arg.String add_include),
-    " add dir to search path for the linker and packer";
-
-    (* Both linking and packing arguments must come _after_ all of the other args and files have been listed.
-       For example:
-
-          bsb_helper -main-module MyModule myFile.cmo myOtherFile.cmo -link-bytecode 
-
-       In the following example, the file called `myIgnoredFile.cmo` is not linked nor is `myLibFolder/lib.cma`
-
-          bsb_helper -main-module MyModule myFile.cmo myOtherFile.cmo -link-bytecode -I myLibFolder myIgnoredFile.cmo
-
-    *)
-    "-link-bytecode", (Arg.String (fun x -> link (Bsb_helper_linker.LinkBytecode x))),
-    " link bytecode files into an executable";
-
-    "-link-native", (Arg.String (fun x -> link (Bsb_helper_linker.LinkNative x))),
-    " link native files into an executable";
-
-    "-pack-native-library", (Arg.Unit (fun () -> 
-        Bsb_helper_packer.pack
-          Bsb_helper_packer.PackNative
-          ~includes:!includes
-          ~batch_files:!batch_files
-      )),
-    " pack native files (cmx) into a library file (cmxa)";
-
-    "-pack-bytecode-library", (Arg.Unit (fun () -> 
-        Bsb_helper_packer.pack
-          Bsb_helper_packer.PackBytecode
-          ~includes:!includes
-          ~batch_files:!batch_files
-      )),
-    " pack bytecode files (cmo) into a library file (cma)";
-#end    
   ] anonymous usage;
   (* arrange with mlast comes first *)
   match !batch_files with

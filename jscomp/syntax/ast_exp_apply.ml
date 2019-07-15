@@ -209,11 +209,5 @@ let app_exp_mapper
           Ast_attributes.is_bs with
       | None -> default_expr_mapper self e
       | Some pexp_attributes ->
-#if BS_NATIVE then
-        {e with pexp_attributes }
-#else
         {e with pexp_desc = Ast_util.uncurry_fn_apply e.pexp_loc self fn (check_and_discard args) ;
                 pexp_attributes }
-      
-  
-#end

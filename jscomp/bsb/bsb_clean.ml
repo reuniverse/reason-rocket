@@ -27,6 +27,8 @@ let (//) = Ext_path.combine
 
 
 let ninja_clean bsc_dir proj_dir =
+  let proj_dir = try Sys.getenv "cur__install" with
+  | Not_found -> proj_dir in
   try
     let cmd = bsc_dir // "ninja.exe" in
     let cwd = proj_dir // Bsb_config.lib_bs in

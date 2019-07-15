@@ -39,6 +39,7 @@ let make_sub_path (x : t) : string =
     a failure
 *)
 let  resolve_bs_package_aux  ~cwd (pkg : t) =
+  let () = print_endline cwd in
   let sub_path = make_sub_path pkg   in
   let rec aux  cwd  =
     let abs_marker =  cwd //  sub_path in
@@ -180,4 +181,3 @@ let resolve_bs_package ~cwd (pkg : t) =
     end
   else
     resolve_bs_package ~cwd pkg
-  end

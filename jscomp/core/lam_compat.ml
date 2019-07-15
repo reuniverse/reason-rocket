@@ -148,7 +148,6 @@ let eq_bigarray_layout (p : bigarray_layout) (p1 : bigarray_layout) =
   | Pbigarray_fortran_layout -> p1 = Pbigarray_fortran_layout  
 
 type compile_time_constant = Lambda.compile_time_constant = 
-#if OCAML_VERSION =~ ">4.03.0" then   
     | Big_endian
     | Word_size
     | Int_size
@@ -157,14 +156,6 @@ type compile_time_constant = Lambda.compile_time_constant =
     | Ostype_win32
     | Ostype_cygwin
     | Backend_type
-  
-#else
-    | Big_endian
-    | Word_size
-    | Ostype_unix
-    | Ostype_win32
-    | Ostype_cygwin
-#end  
 
 (** relies on the fact that [compile_time_constant] is enum type *)
 let eq_compile_time_constant ( p : compile_time_constant) (p1 : compile_time_constant) = 
@@ -186,15 +177,11 @@ type field_dbg_info = Lambda.field_dbg_info =
   | Fld_na
   | Fld_record of string
   | Fld_module of string 
-#if OCAML_VERSION =~ ">4.03.0"  then 
   | Fld_record_inline of string 
   | Fld_record_extension of string 
-#end  
 
 type set_field_dbg_info = Lambda.set_field_dbg_info = 
   | Fld_set_na
   | Fld_record_set of string 
-#if OCAML_VERSION =~ ">4.03.0"  then     
   | Fld_record_inline_set of string  
   | Fld_record_extension_set of string
-#end  

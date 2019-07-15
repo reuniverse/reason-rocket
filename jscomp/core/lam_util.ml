@@ -225,9 +225,6 @@ let log_counter = ref 0
 
 
 let dump env ext  lam = 
-#if BS_COMPILER_IN_BROWSER || BS_RELEASE_BUILD then
-      ()
-#else
    if Js_config.is_same_file ()
     then 
       (* ATTENTION: easy to introduce a bug during refactoring when forgeting `begin` `end`*)
@@ -240,7 +237,6 @@ let dump env ext  lam =
            (Printf.sprintf ".%02d%s.lam" !log_counter ext)
           ) lam;
       end
-#end      
   
 
 

@@ -166,13 +166,7 @@ val replace_backward_slash : string -> string
 
 val empty : string 
 
-#if BS_COMPILER_IN_BROWSER then
-val compare :  string -> string -> int
-#elif OCAML_VERSION =~ ">4.3.0" then
 external compare : string -> string -> int = "caml_string_length_based_compare" [@@noalloc];;  
-#else
-external compare : string -> string -> int = "caml_string_length_based_compare" "noalloc";;
-#end  
 val single_space : string
 
 val concat3 : string -> string -> string -> string 

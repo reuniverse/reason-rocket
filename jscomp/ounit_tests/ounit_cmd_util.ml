@@ -2,6 +2,8 @@ let (//) = Filename.concat
 
 (** may nonterminate when [cwd] is '.' *)
 let rec unsafe_root_dir_aux cwd  = 
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
   if Sys.file_exists (cwd//Literals.bsconfig_json) then cwd 
   else unsafe_root_dir_aux (Filename.dirname cwd)     
 
@@ -13,11 +15,7 @@ let bsc_exe = bsc_bin // "bsc.exe"
 let runtime_dir = jscomp // "runtime"
 let others_dir = jscomp // "others"
 
-#if OCAML_VERSION =~ ">4.03.0" then
 let stdlib_dir = jscomp // "stdlib-406"
-#else
-let stdlib_dir = jscomp // "stdlib-402"
-#end
 
 let rec safe_dup fd =
   let new_fd = Unix.dup fd in

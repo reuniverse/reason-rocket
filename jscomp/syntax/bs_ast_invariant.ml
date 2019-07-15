@@ -36,18 +36,6 @@ let is_bs_attribute txt =
 let used_attributes : string Asttypes.loc Hash_set_poly.t = 
     Hash_set_poly.create 16 
 
-
-#if false then
-let dump_attribute fmt = (fun ( (sloc : string Asttypes.loc),payload) -> 
-    Format.fprintf fmt "@[%s %a@]" sloc.txt (Printast.payload 0 ) payload
-    )
-
-let dump_used_attributes fmt = 
-  Format.fprintf fmt "Used attributes Listing Start:@.";
-  Hash_set_poly.iter  used_attributes (fun attr -> dump_attribute fmt attr) ;
-  Format.fprintf fmt "Used attributes Listing End:@."
-#end
-
 (* only mark non-ghost used bs attribute *)
 let mark_used_bs_attribute ((x,_) : Parsetree.attribute) = 
   if not x.loc.loc_ghost then
@@ -62,11 +50,7 @@ let warn_unused_attribute
   if is_bs_attribute txt && 
      not loc.loc_ghost &&
      not (Hash_set_poly.mem used_attributes sloc) then 
-    begin    
-#if false then (*COMMENT*)
-      dump_used_attributes Format.err_formatter; 
-      dump_attribute Format.err_formatter attr ;
-#end
+    begin
       Location.prerr_warning loc (Bs_unused_attribute txt)
     end
 
@@ -74,13 +58,8 @@ let warn_discarded_unused_attributes (attrs : Parsetree.attributes) =
   if attrs <> [] then 
     Ext_list.iter attrs warn_unused_attribute
     
-#if OCAML_VERSION =~ ">4.03.0" then 
 type iterator = Ast_iterator.iterator
 let default_iterator = Ast_iterator.default_iterator
-#else
-type iterator = Bs_ast_iterator.iterator      
-let default_iterator = Bs_ast_iterator.default_iterator
-#end
 (* Note we only used Bs_ast_iterator here, we can reuse compiler-libs instead of 
    rolling our own*)
 let emit_external_warnings : iterator=
@@ -90,15 +69,10 @@ let emit_external_warnings : iterator=
     expr = (fun self a -> 
         match a.pexp_desc with 
         | Pexp_constant (
-#if OCAML_VERSION =~ ">4.03.0"  then
           Pconst_string
-#else          
-          Const_string 
-#end
           (_, Some s)) 
           when Ast_utf8_string_interp.is_unescaped s -> 
           Bs_warnings.error_unescaped_delimiter a.pexp_loc s 
-#if OCAML_VERSION =~ ">4.03.0" then
         | Pexp_constant(Pconst_integer(s,None)) -> 
           (* range check using int32 
             It is better to give a warning instead of error to avoid make people unhappy.
@@ -114,7 +88,6 @@ let emit_external_warnings : iterator=
             with _ ->              
               Bs_warnings.warn_literal_overflow a.pexp_loc
           )
-#end
         | _ -> default_iterator.expr self a 
       );
     value_description =
@@ -138,11 +111,7 @@ let emit_external_warnings : iterator=
       pat = begin fun self (pat : Parsetree.pattern) -> 
                   match pat.ppat_desc with
                   |  Ppat_constant(
-#if OCAML_VERSION =~ ">4.03.0" then
-            Pconst_string
-#else            
-            Const_string 
-#end                    
+            Pconst_string         
          (_, Some "j")) ->
         Location.raise_errorf ~loc:pat.ppat_loc  "Unicode string is not allowed in pattern match" 
       | _ -> default_iterator.pat self pat

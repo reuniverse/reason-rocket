@@ -30,9 +30,6 @@
 let log_counter = ref 0 
 
 let dump name (prog : J.program) =
-#if BS_COMPILER_IN_BROWSER || BS_RELEASE_BUILD then
-    prog
-#else 
   begin
     let () = 
       if Js_config.is_same_file ()
@@ -47,5 +44,4 @@ let dump name (prog : J.program) =
         end in
     prog    
   end
-#end
  

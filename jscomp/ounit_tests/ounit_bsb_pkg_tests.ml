@@ -34,13 +34,6 @@ let data_one : Bsb_db_decode.group array =
 let data_two : Bsb_db_decode.group array =  
   [| {modules = [|"Fib"; "Demo"|]; meta_info_offset = 20 }; {modules = [||]; meta_info_offset = 48}; {modules = [||]; meta_info_offset = -1} |]
 
-#if 0 then  
-let () = 
-  Format.fprintf Format.err_formatter
-  "hi\n%a@.%a\n@."
-   Ext_obj.pp_any parse_data_one  
-   Ext_obj.pp_any parse_data_two
-#end
 let scope_test s (a,b,c)= 
   match Bsb_pkg_types.extract_pkg_name_and_file s with 
   | Scope(a0,b0),c0 -> 

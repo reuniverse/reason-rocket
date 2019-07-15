@@ -130,6 +130,9 @@ let interpret_json
 
   : Bsb_config_types.t =
 
+  let cwd = try Sys.getenv "cur__install" with
+  | Not_found -> cwd in
+
   let reason_react_jsx : Bsb_config_types.reason_react_jsx option ref = ref None in 
   let config_json = cwd // Literals.bsconfig_json in
   let refmt_flags = ref Bsb_default.refmt_flags in
@@ -245,9 +248,11 @@ let interpret_json
               exit 2)
                 
             | _ -> assert false);
+            let lib_ocaml = try Sys.getenv "OCAMLLIB" with
+            | Not_found -> stdlib_path // Bsb_config.lib_ocaml in
             built_in_package := Some {
               Bsb_config_types.package_name = current_package;
-              package_install_path = stdlib_path // Bsb_config.lib_ocaml;
+              package_install_path = lib_ocaml;
             }
              
           | _ -> assert false 

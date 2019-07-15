@@ -41,26 +41,6 @@
   patching the right parts, through the power of types(tm)
 *)
 
-#if defined BS_NO_COMPILER_PATCH then
-open Migrate_parsetree
-open Ast_404
-module To_current = Convert(OCaml_404)(OCaml_current)
-
-let nolabel = Ast_404.Asttypes.Nolabel
-let labelled str = Ast_404.Asttypes.Labelled str
-let argIsKeyRef = function
-  | (Asttypes.Labelled ("key" | "ref"), _) | (Asttypes.Optional ("key" | "ref"), _) -> true
-  | _ -> false
-let constantString ~loc str = Ast_helper.Exp.constant ~loc (Parsetree.Pconst_string (str, None))
-#else
-let nolabel = ""
-let labelled str = str
-let argIsKeyRef = function
-  | (("key" | "ref"), _) | (("?key" | "?ref"), _) -> true
-  | _ -> false
-let constantString ~loc str = Ast_helper.Exp.constant ~loc (Asttypes.Const_string (str, None))
-#end
-
 open Ast_helper
 open Ast_mapper
 open Asttypes
@@ -87,13 +67,8 @@ let transformChildrenIfList ~loc ~mapper theList =
 let extractChildren ?(removeLastPositionUnit=false) ~loc propsAndChildren =
   let rec allButLast_ lst acc = match lst with
     | [] -> []
-#if defined BS_NO_COMPILER_PATCH then
-    | (Nolabel, {pexp_desc = Pexp_construct ({txt = Lident "()"}, None)})::[] -> acc
-    | (Nolabel, _)::_ -> raise (Invalid_argument "JSX: found non-labelled argument before the last position")
-#else
     | ("", {pexp_desc = Pexp_construct ({txt = Lident "()"}, None)})::[] -> acc
     | ("", _)::rest -> raise (Invalid_argument "JSX: found non-labelled argument before the last position")
-#end
     | arg::rest -> allButLast_ rest (arg::acc)
   in
   let allButLast lst = allButLast_ lst [] |> List.rev in
@@ -255,17 +230,10 @@ let jsxMapper () =
           (* no file-level jsx config found *)
           | ([], _) -> default_mapper.structure mapper structure
           (* {jsx: 2} *)
-#if defined BS_NO_COMPILER_PATCH then
-          | ((_, {pexp_desc = Pexp_constant (Pconst_integer (version, _))})::_, recordFieldsWithoutJsx) -> begin
-              (match version with
-              | "2" -> jsxVersion := Some 2
-              | _ -> raise (Invalid_argument "JSX: the file-level bs.config's jsx version must be 2"));
-#else
           | ((_, {pexp_desc = Pexp_constant (Const_int version)})::rest, recordFieldsWithoutJsx) -> begin
               (match version with
               | 2 -> jsxVersion := Some 2
               | _ -> raise (Invalid_argument "JSX: the file-level bs.config's jsx version must be 2"));
-#end
               match recordFieldsWithoutJsx with
               (* record empty now, remove the whole bs.config attribute *)
               | [] -> default_mapper.structure mapper restOfStructure
@@ -326,83 +294,4 @@ let jsxMapper () =
        (* Delegate to the default mapper, a deep identity traversal *)
        | e -> default_mapper.expr mapper e) in
 
-#if defined BS_NO_COMPILER_PATCH then
-  To_current.copy_mapper { default_mapper with structure; expr }
-#else
   { default_mapper with structure; expr }
-#end
-
-#if BS_COMPILER_IN_BROWSER then
-
-module Js = struct
-  module Unsafe = struct
-    type any
-    external inject : 'a -> any = "%identity"
-    external get : 'a -> 'b -> 'c = "caml_js_get"
-    external set : 'a -> 'b -> 'c -> unit = "caml_js_set"
-    external pure_js_expr : string -> 'a = "caml_pure_js_expr"
-    let global = pure_js_expr "joo_global_object"
-    external obj : (string * any) array -> 'a = "caml_js_object"
-  end
-  type (-'a, +'b) meth_callback
-  type 'a callback = (unit, 'a) meth_callback
-  external wrap_meth_callback : ('a -> 'b) -> ('a, 'b) meth_callback = "caml_js_wrap_meth_callback"
-  type + 'a t
-  type js_string
-  external string : string -> js_string t = "caml_js_from_string"
-  external to_string : js_string t -> string = "caml_js_to_string"
-end
-
-(* keep in sync with jscomp/core/jsoo_main.ml `let implementation` *)
-let rewrite code =
-  let mapper = jsxMapper () in
-  Location.input_name := "//toplevel//";
-  try
-    let lexer = Lexing.from_string code in
-    let pstr = Parse.implementation lexer in
-    let pstr = mapper.structure mapper pstr in
-    let buffer = Buffer.create 1000 in
-    Pprintast.structure Format.str_formatter pstr;
-    let ocaml_code = Format.flush_str_formatter () in
-    Js.Unsafe.(obj [| "ocaml_code", inject @@ Js.string ocaml_code |])
-  with e ->
-    match Location.error_of_exn e with
-    | Some error ->
-        Location.report_error Format.err_formatter error;
-        let (file, line, startchar) = Location.get_pos_info error.loc.loc_start in
-        let (file, endline, endchar) = Location.get_pos_info error.loc.loc_end in
-        Js.Unsafe.(obj
-          [|
-            "ppx_error_msg", inject @@ Js.string (Printf.sprintf "Line %d, %d: %s" line startchar error.msg);
-            "row", inject (line - 1);
-            "column", inject startchar;
-            "endRow", inject (endline - 1);
-            "endColumn", inject endchar;
-            "text", inject @@ Js.string error.msg;
-            "type", inject @@ Js.string "error";
-          |]
-        )
-    | None ->
-        Js.Unsafe.(obj [|
-          "js_error_msg" , inject @@ Js.string (Printexc.to_string e)
-        |])
-
-let export (field : string) v =
-  Js.Unsafe.set (Js.Unsafe.global) field v
-
-let make_ppx name =
-  export name
-    (Js.Unsafe.(obj
-                  [|"rewrite",
-                    inject @@
-                    Js.wrap_meth_callback
-                      (fun _ code -> rewrite (Js.to_string code));
-                  |]))
-
-let () = make_ppx "jsxv2"
-
-#elif defined BS_NO_COMPILER_PATCH then
-let () = Compiler_libs.Ast_mapper.register "JSX" (fun _argv -> jsxMapper ())
-#else
-let () = Ast_mapper.register "JSX" (fun _argv -> jsxMapper ())
-#end

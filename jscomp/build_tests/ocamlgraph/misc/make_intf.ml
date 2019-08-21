@@ -39,7 +39,7 @@ let () =
   for i = 1 to Array.length Sys.argv - 1 do
     let f = Sys.argv.(i) in
     if not (Sys.file_exists f) then failwith (f ^ ": no suh file");
-    let m = String.capitalize (Filename.chop_suffix f ".mli") in
+    let m = String.capitalize_ascii (Filename.chop_suffix f ".mli") in
     fprintf cout "module %s : sig\n" m;
     copy f;
     fprintf cout "end\n\n"

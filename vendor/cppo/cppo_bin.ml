@@ -6342,7 +6342,7 @@ let trim_and_compact_string s =
 let trim_compact_and_capitalize_string s =
   let buf = Buffer.create (String.length s) in
   trim_and_compact buf s;
-  String.capitalize (Buffer.contents buf)
+  String.capitalize_ascii (Buffer.contents buf)
 
 let is_ident s =
   let len = String.length s in

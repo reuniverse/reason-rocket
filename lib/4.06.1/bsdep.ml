@@ -25515,8 +25515,8 @@ let matching_filename filename { pattern } =
   match pattern with
   | Any -> true
   | Filename pattern ->
-    let filename = String.lowercase_ascii filename in
-    let pattern = String.lowercase_ascii pattern in
+    let filename = String.lowercase_ascii_ascii filename in
+    let pattern = String.lowercase_ascii_ascii pattern in
     filename = pattern
 
 let apply_config_file ppf position =
@@ -30276,7 +30276,7 @@ let uncapitalize_ascii =
 
 
  
-let lowercase_ascii = String.lowercase_ascii
+let lowercase_ascii = String.lowercase_ascii_ascii
 
 
 
@@ -46951,7 +46951,7 @@ let jsxMapper () =
     let isCap str = let first = String.sub str 0 1 in
     
 # 410 "syntax/reactjs_jsx_ppx.cppo.ml"
-    let capped = String.uppercase_ascii first in first = capped in
+    let capped = String.uppercase_ascii_ascii first in first = capped in
     
 # 414 "syntax/reactjs_jsx_ppx.cppo.ml"
     let ident = match modulePath with
@@ -48023,7 +48023,7 @@ let jsxMapper () =
     let isCap str = let first = String.sub str 0 1 in
     
 # 410 "syntax/reactjs_jsx_ppx.cppo.ml"
-    let capped = String.uppercase_ascii first in first = capped in
+    let capped = String.uppercase_ascii_ascii first in first = capped in
     
 # 414 "syntax/reactjs_jsx_ppx.cppo.ml"
     let ident = match modulePath with

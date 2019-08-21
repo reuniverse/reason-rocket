@@ -40,7 +40,7 @@ let regenerate_ninja
   : Bsb_config_types.t option =
   let cwd = try Sys.getenv "cur__install" with
   | Not_found -> cwd in
-  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
+  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd true in
   let output_deps = build_artifacts_dir // Bsb_config.lib_bs // bsdeps in
   let check_result  =
     Bsb_ninja_check.check 

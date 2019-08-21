@@ -55,7 +55,7 @@ let install_targets cwd (config : Bsb_config_types.t option) =
         begin match namespace with 
           | None -> ()
           | Some x -> 
-            install_filename_sans_extension destdir None  x
+            install_filename_sans_extension destdir None x
         end;
         String_hash_set.iter files_to_install (install_filename_sans_extension destdir namespace) ;
         Bsb_log.info "@{<info>Installing finished@} @.";
@@ -74,7 +74,7 @@ let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
   Bsb_build_util.walk_all_deps  cwd (fun {top; cwd} ->
       if not top then
         begin
-          let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd in
+          let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd top in
           let config_opt = Bsb_ninja_regen.regenerate_ninja ~not_dev:true
               ~generate_watch_metadata:false
               ~override_package_specs:(Some deps) 

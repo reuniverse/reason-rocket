@@ -35,7 +35,7 @@
 	"node", NODE;
 	"edge", EDGE;
       ];
-    fun s -> let s = String.lowercase s in Hashtbl.find h s
+    fun s -> let s = String.lowercase_ascii s in Hashtbl.find h s
 
 }
 

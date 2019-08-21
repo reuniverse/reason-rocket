@@ -137,10 +137,7 @@ let handle_anonymous_arg arg =
 let program_exit () =
   exit 0
 
-let getenv_opt env = try Some(Sys.getenv env) with
-  | Not_found -> None
-
-Bsb_build_util.build_artifacts_dir := getenv_opt "cur__install"
+Bsb_build_util.build_artifacts_dir := Sys.getenv_opt "cur__install"
 
 (* see discussion #929, if we catch the exception, we don't have stacktrace... *)
 let () =
@@ -152,7 +149,7 @@ let () =
         ~generate_watch_metadata:true
         ~forced:false 
         cwd bsc_dir |> ignore;
-      ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd) vendor_ninja [||] 
+      ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja [||] 
     | argv -> 
       begin
         match Ext_array.find_and_split argv Ext_string.equal separator with
@@ -193,7 +190,7 @@ let () =
                       [bsb -regen ]
                    *)
                  end else if make_world then begin
-                   ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd) vendor_ninja [||] 
+                   ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja [||] 
                  end)
           end
         | `Split (bsb_args,ninja_args)
@@ -209,7 +206,7 @@ let () =
             if !make_world then
               Bsb_world.make_world_deps cwd config_opt ninja_args;
             if !watch_mode then program_exit ()
-            else ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd) vendor_ninja ninja_args 
+            else ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja ninja_args 
           end
       end
   end

@@ -106,7 +106,7 @@ function generateVisitorPattern() {
  * need do test build in CI either
  *
  */
-var useEnv = true;
+var useEnv = false;
 
 /**
  * Note this file is not used in ninja file
@@ -115,6 +115,7 @@ var useEnv = true;
  * Note ocamldep.opt has built-in macro handling OCAML_VERSION
  */
 var getOcamldepFile = () => {
+  return `ocamldep.opt`;
   if (useEnv) {
     return `ocamldep.opt`;
   } else {
@@ -1177,6 +1178,10 @@ ${ninjaQuickBuidList([
   var output = generateNinja(depsMap, targets, ninjaCwd, externalDeps);
   output.push(phony(stdlibTarget, fileTargets(allTargets), ninjaCwd));
 
+  console.warn(stdlibVersion, ninjaOutput);
+
+  throw new Error("stdlibVersion");
+
   writeFileAscii(
     path.join(stdlibDir, ninjaOutput),
     templateStdlibRules + output.join("\n") + "\n"
@@ -1488,7 +1493,9 @@ function setSortedToString(xs) {
  * @returns {string}
  */
 function getVendorConfigNinja() {
-  var prefix = `../native/${require("./buildocaml.js").getVersionPrefix()}/bin`;
+  var prefix = process.env.OCAMLLIB
+    ? path.join(process.env.OCAMLLIB, "../../bin")
+    : `../native/${require("./buildocaml.js").getVersionPrefix()}/bin`;
   return `
 ocamlopt = ${prefix}/ocamlopt.opt
 ocamllex = ${prefix}/ocamllex.opt
@@ -1777,11 +1784,13 @@ function main() {
             stdio: [0, 1]
           });
         } catch (e) {}
+        /*
         cp.execSync(`git clean -dfx jscomp lib`, {
           encoding: "utf8",
           cwd: path.join(__dirname, ".."),
           stdio: [0, 1, 2]
         });
+        */
         break;
       case "config":
         console.log(`config for the first time may take a while`);
@@ -1791,7 +1800,7 @@ function main() {
         break;
       case "docs":
         console.log(`building docs`);
-        require('./doc_gen').main()
+        require("./doc_gen").main();
         break;
       case "help":
         console.log(`supported subcommands:
@@ -1800,7 +1809,7 @@ function main() {
 [exe] docs
 [exe] help
 [exe] clean
-        `)
+        `);
         break;
       default:
         if (process.argv.length === emptyCount) {

@@ -514,8 +514,8 @@ and walk_single_source cxt (x : Ext_json_types.t) =
     end
   | _ -> ()  
 and walk_source_dir_map (cxt : walk_cxt)  sub_dirs_field =   
-    let working_dir = Filename.concat cxt.root (Bsb_build_util.get_build_artifacts_location cxt.cwd) in 
-    if not (String_set.mem cxt.ignored_dirs (Bsb_build_util.get_build_artifacts_location cxt.cwd)) then begin 
+    let working_dir = Filename.concat cxt.root (Bsb_build_util.get_build_artifacts_location cxt.cwd cxt.top) in 
+    if not (String_set.mem cxt.ignored_dirs (Bsb_build_util.get_build_artifacts_location cxt.cwd cxt.top)) then begin 
       let file_array = Sys.readdir working_dir in 
       (* Remove .re.js when clean up *)
       Ext_array.iter file_array begin fun file -> 

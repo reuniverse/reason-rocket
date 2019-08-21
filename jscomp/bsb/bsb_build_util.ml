@@ -239,9 +239,9 @@ let walk_all_deps dir cb =
 
 let build_artifacts_dir = ref None
 
-let get_build_artifacts_location cwd =
+let get_build_artifacts_location cwd top =
   (* If the project's parent folder is not node_modules, we know it's the top level one. *)
-  if (Filename.basename (Filename.dirname cwd)) <> "node_modules" then 
+  if top then 
     match !build_artifacts_dir with 
     | None -> cwd
     | Some dir -> dir

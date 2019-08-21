@@ -113,7 +113,7 @@ let adjust_module_info
       name_sans_extension suffix
 
 let collect_module_by_filename 
-  ~(dir : string) (map : t) (file_name : string) : t  = 
+  ~(dir : string) (map : t) (file_name : string) : t =
   let module_name, upper = 
     Ext_filename.module_name_with_case file_name in 
   let suffix = Ext_path.get_extension file_name in 

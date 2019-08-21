@@ -260,14 +260,14 @@ val rcontains_from : string -> int -> char -> bool
    position in [s]. *)
 
 val uppercase : string -> string
-  [@@ocaml.deprecated "Use String.uppercase_ascii instead."]
+  [@@ocaml.deprecated "Use String.uppercase_ascii_ascii instead."]
 (** Return a copy of the argument, with all lowercase letters
    translated to uppercase, including accented letters of the ISO
    Latin-1 (8859-1) character set.
    @deprecated Functions operating on Latin-1 character set are deprecated. *)
 
 val lowercase : string -> string
-  [@@ocaml.deprecated "Use String.lowercase_ascii instead."]
+  [@@ocaml.deprecated "Use String.lowercase_ascii_ascii instead."]
 (** Return a copy of the argument, with all uppercase letters
    translated to lowercase, including accented letters of the ISO
    Latin-1 (8859-1) character set.

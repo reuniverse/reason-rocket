@@ -109,4 +109,4 @@ val walk_all_deps : string -> (package_context -> unit) -> unit
 
 val build_artifacts_dir : (string option) ref
 
-val get_build_artifacts_location : string -> string
+val get_build_artifacts_location : string -> bool -> string

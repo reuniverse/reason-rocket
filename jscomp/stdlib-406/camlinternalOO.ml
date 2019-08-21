@@ -44,12 +44,11 @@ let params = {
 }
 
 (**** Parameters ****)
-#if BS then(* {!Translobj.oo_prim : string -> lambda} not by slot *)
+(* {!Translobj.oo_prim : string -> lambda} not by slot *)
 module Sys = struct 
   external word_size : unit -> int = "%word_size"
   let word_size = word_size ()
 end
-#end
 let initial_object_size = 2
 
 (**** Items ****)
@@ -87,26 +86,14 @@ let public_method_label s : tag =
 (**** Sparse array ****)
 
 module Vars =
-#if BS then
-  Belt.Map.String  
-#else
-  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
-#end  
+  Belt.Map.String 
 type vars = int Vars.t
 
 module Meths =
-#if BS then
-  Belt.Map.String  
-#else
-  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
-#end  
+  Belt.Map.String 
 type meths = label Meths.t
 module Labs =
-#if BS then 
   Belt.Map.Int
-#else  
-  Map.Make(struct type t = label let compare (x:t) y = compare x y end)
-#end   
 type labs = bool Labs.t
 
 (* The compiler assumes that the first field of this structure is [size]. *)

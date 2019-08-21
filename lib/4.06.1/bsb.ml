@@ -1140,7 +1140,7 @@ let uncapitalize_ascii =
 
 
  
-let lowercase_ascii = String.lowercase_ascii
+let lowercase_ascii = String.lowercase_ascii_ascii
 
 
 
@@ -6538,6 +6538,119 @@ let of_list2 ks vs =
 
 
 end
+module Bsb_config : sig 
+#1 "bsb_config.mli"
+(* Copyright (C) 2015-2016 Bloomberg Finance L.P.
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In addition to the permissions granted to you by the LGPL, you may combine
+ * or link a "work that uses the Library" with a publicly distributed version
+ * of this file to produce a combined library or application, then distribute
+ * that combined work under the terms of your choosing, with no requirement
+ * to comply with the obligations normally placed on you by section 4 of the
+ * LGPL version 3 (or the corresponding section of a later version of the LGPL
+ * should you choose to use a later version).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
+
+
+val ocaml_bin_install_prefix : string -> string
+val proj_rel : string -> string
+val build_artifacts_dir : string -> string
+
+val lib_lit : string
+val lib_js : string 
+val lib_bs : string
+val lib_es6 : string 
+val lib_es6_global : string 
+val lib_ocaml : string
+val all_lib_artifacts : string list 
+(* we need generate path relative to [lib/bs] directory in the opposite direction *)
+val rev_lib_bs_prefix : string -> string
+
+
+(** default not install, only when -make-world, its dependencies will be installed  *)
+val node_modules : string
+
+end = struct
+#1 "bsb_config.ml"
+(* Copyright (C) 2015-2016 Bloomberg Finance L.P.
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In addition to the permissions granted to you by the LGPL, you may combine
+ * or link a "work that uses the Library" with a publicly distributed version
+ * of this file to produce a combined library or application, then distribute
+ * that combined work under the terms of your choosing, with no requirement
+ * to comply with the obligations normally placed on you by section 4 of the
+ * LGPL version 3 (or the corresponding section of a later version of the LGPL
+ * should you choose to use a later version).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
+let (//) = Ext_path.combine 
+
+let lib_lit = "lib"
+let lib_js = lib_lit //"js"
+
+let lib_ocaml = lib_lit // "ocaml"
+let lib_bs = lib_lit // "bs"
+let lib_es6 = lib_lit // "es6"
+let lib_es6_global = lib_lit // "es6_global"
+
+let all_lib_artifacts = 
+  [ lib_js ; 
+    lib_ocaml;
+    lib_bs ; 
+    lib_es6 ; 
+    lib_es6_global;
+  ]
+let rev_lib_bs = ".."// ".."
+
+
+let rev_lib_bs_prefix p = rev_lib_bs // p 
+
+let ocaml_bin_install_prefix p = lib_ocaml // p
+
+let lazy_build_artifacts_dir = "$build_artifacts_dir"
+let build_artifacts_dir path = lazy_build_artifacts_dir // path
+
+let lazy_src_root_dir = "$src_root_dir" 
+let proj_rel path = lazy_src_root_dir // path
+
+(** it may not be a bad idea to hard code the binary path 
+    of bsb in configuration time
+*)
+
+
+
+
+
+
+let cmd_package_specs = ref None 
+
+let node_modules = "node_modules"
+end
 module Bsb_build_util : sig 
 #1 "bsb_build_util.mli"
 (* Copyright (C) 2015-2016 Bloomberg Finance L.P.
@@ -6649,6 +6762,9 @@ type package_context = {
 
 val walk_all_deps : string -> (package_context -> unit) -> unit
 
+val build_artifacts_dir : (string option) ref
+
+val get_build_artifacts_location : string -> bool -> string
 end = struct
 #1 "bsb_build_util.ml"
 (* Copyright (C) 2015-2016 Bloomberg Finance L.P.
@@ -6857,7 +6973,8 @@ let rec walk_all_deps_aux
       Bsb_log.info
         "@{<info>Visited before@} %s@." cur_package_name
     else 
-      let explore_deps (deps : string) =   
+      let explore_deps (deps : string) =
+        Bsb_log.info "@{<info>explore_deps@}@.";
         map
         |?
         (deps,
@@ -6878,6 +6995,7 @@ let rec walk_all_deps_aux
       begin 
         explore_deps Bsb_build_schemas.bs_dependencies;          
         if top then explore_deps Bsb_build_schemas.bs_dev_dependencies;
+        Bsb_log.info "@{<info>explore_deps - dir@} %s - %B@." dir top;
         cb {top ; cwd = dir};
         String_hashtbl.add visited cur_package_name dir;
       end
@@ -6890,113 +7008,30 @@ let walk_all_deps dir cb =
   let visited = String_hashtbl.create 0 in 
   walk_all_deps_aux visited [] true dir cb 
 
-end
-module Bsb_config : sig 
-#1 "bsb_config.mli"
-(* Copyright (C) 2015-2016 Bloomberg Finance L.P.
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * In addition to the permissions granted to you by the LGPL, you may combine
- * or link a "work that uses the Library" with a publicly distributed version
- * of this file to produce a combined library or application, then distribute
- * that combined work under the terms of your choosing, with no requirement
- * to comply with the obligations normally placed on you by section 4 of the
- * LGPL version 3 (or the corresponding section of a later version of the LGPL
- * should you choose to use a later version).
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
+let build_artifacts_dir = ref None
 
+let get_build_artifacts_location cwd top =
+  (* If the project's parent folder is not node_modules, we know it's the top level one. *)
+  if top then 
+    match !build_artifacts_dir with 
+    | None -> cwd
+    | Some dir -> dir
+  else begin
+    match !build_artifacts_dir with 
+    | None -> 
+      Bsb_log.error "@{<error>build_artifacts_dir not set @}@.";
+      cwd
+      (* (Filename.dirname (Filename.dirname cwd)) // Bsb_config.lib_lit // Bsb_config.node_modules // project_name *)
+    | Some dir ->
+      let project_name = Filename.basename cwd in
+      Bsb_log.error "@{<error>get_build_artifacts_location dir: @} %s@." dir;
+      Bsb_log.error "@{<error>get_build_artifacts_location cwd: @} %s@." cwd;
+      Bsb_log.error "@{<error>get_build_artifacts_location build_artifacts_dir: @} %s and %s@." dir;
+      Bsb_log.error "@{<error>get_build_artifacts_location project_name: @} %s@." project_name;
+      Bsb_log.error "@{<error>get_build_artifacts_location return_value: @} %s@." (dir // Bsb_config.lib_lit // Bsb_config.node_modules // project_name);
 
-val ocaml_bin_install_prefix : string -> string
-val proj_rel : string -> string
-
-val lib_js : string 
-val lib_bs : string
-val lib_es6 : string 
-val lib_es6_global : string 
-val lib_ocaml : string
-val all_lib_artifacts : string list 
-(* we need generate path relative to [lib/bs] directory in the opposite direction *)
-val rev_lib_bs_prefix : string -> string
-
-
-(** default not install, only when -make-world, its dependencies will be installed  *)
-
-
-end = struct
-#1 "bsb_config.ml"
-(* Copyright (C) 2015-2016 Bloomberg Finance L.P.
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * In addition to the permissions granted to you by the LGPL, you may combine
- * or link a "work that uses the Library" with a publicly distributed version
- * of this file to produce a combined library or application, then distribute
- * that combined work under the terms of your choosing, with no requirement
- * to comply with the obligations normally placed on you by section 4 of the
- * LGPL version 3 (or the corresponding section of a later version of the LGPL
- * should you choose to use a later version).
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
-let (//) = Ext_path.combine 
-
-let lib_lit = "lib"
-let lib_js = lib_lit //"js"
-
-let lib_ocaml = lib_lit // "ocaml"
-let lib_bs = lib_lit // "bs"
-let lib_es6 = lib_lit // "es6"
-let lib_es6_global = lib_lit // "es6_global"
-
-let all_lib_artifacts = 
-  [ lib_js ; 
-    lib_ocaml;
-    lib_bs ; 
-    lib_es6 ; 
-    lib_es6_global;
-  ]
-let rev_lib_bs = ".."// ".."
-
-
-let rev_lib_bs_prefix p = rev_lib_bs // p 
-
-let ocaml_bin_install_prefix p = lib_ocaml // p
-
-let lazy_src_root_dir = "$src_root_dir" 
-let proj_rel path = lazy_src_root_dir // path
-
-(** it may not be a bad idea to hard code the binary path 
-    of bsb in configuration time
-*)
-
-
-
-
-
-
-let cmd_package_specs = ref None 
-
+      dir // Bsb_config.lib_lit // Bsb_config.node_modules // project_name
+  end
 
 end
 module Bsb_db : sig 
@@ -7592,7 +7627,7 @@ let adjust_module_info
       name_sans_extension suffix
 
 let collect_module_by_filename 
-  ~(dir : string) (map : t) (file_name : string) : t  =ß
+  ~(dir : string) (map : t) (file_name : string) : t =
   let module_name, upper = 
     Ext_modulename.module_name_of_file_if_any_with_upper file_name in 
   let suffix = Ext_path.get_extension file_name in 
@@ -9850,7 +9885,9 @@ let classify_suffix (x : string) : suffix_kind =
 let prune_staled_bs_js_files 
     (context : cxt) 
     (cur_sources : _ String_map.t ) 
-     : unit =     
+     : unit =
+  print_endline ("cwd: " ^ context.cwd);
+  print_endline ("root: " ^ context.root);
   let lib_parent = 
     Filename.concat (Filename.concat context.root Bsb_config.lib_bs) 
       context.cwd in 
@@ -10119,8 +10156,8 @@ and walk_single_source cxt (x : Ext_json_types.t) =
     end
   | _ -> ()  
 and walk_source_dir_map (cxt : walk_cxt)  sub_dirs_field =   
-    let working_dir = Filename.concat cxt.root cxt.cwd in 
-    if not (String_set.mem cxt.ignored_dirs cxt.cwd) then begin 
+    let working_dir = Filename.concat cxt.root (Bsb_build_util.get_build_artifacts_location cxt.cwd false) in 
+    if not (String_set.mem cxt.ignored_dirs (Bsb_build_util.get_build_artifacts_location cxt.cwd false)) then begin 
       let file_array = Sys.readdir working_dir in 
       (* Remove .re.js when clean up *)
       Ext_array.iter file_array begin fun file -> 
@@ -10410,10 +10447,10 @@ let clean_bs_garbage bsc_dir proj_dir =
 let clean_bs_deps bsc_dir proj_dir =
   Bsb_build_util.walk_all_deps  proj_dir  (fun pkg_cxt ->
       (* whether top or not always do the cleaning *)
-      clean_bs_garbage bsc_dir pkg_cxt.cwd
+      clean_bs_garbage bsc_dir (Bsb_build_util.get_build_artifacts_location pkg_cxt.cwd pkg_cxt.top)
     )
 
-let clean_self bsc_dir proj_dir = clean_bs_garbage bsc_dir proj_dir
+let clean_self bsc_dir proj_dir = clean_bs_garbage bsc_dir (Bsb_build_util.get_build_artifacts_location proj_dir true)
 
 end
 module Ext_namespace : sig 
@@ -10788,11 +10825,7 @@ let bs_package_output = "-bs-package-output"
     {[ -bs-package-output commonjs:lib/js/jscomp/test ]}
 *)
 let package_flag ({format; in_source } : spec) dir =
-  Ext_string.inter2
-    bs_package_output 
-    (Ext_string.concat3
-       format
-       Ext_string.single_colon
+  let dir = Bsb_config.build_artifacts_dir (if in_source then dir else
        (if in_source then dir else
           if format = Literals.commonjs then 
              common_js_prefix dir 
@@ -10800,7 +10833,14 @@ let package_flag ({format; in_source } : spec) dir =
              es6_prefix dir 
            else if format = Literals.es6_global then 
              es6_global_prefix dir              
-           else assert false))
+           else assert false)) in
+  Ext_string.inter2
+    bs_package_output 
+    (Ext_string.concat3
+       format
+       Ext_string.single_colon
+       dir
+    )
 
 let package_flag_of_package_specs (package_specs : t) 
     (dirname : string ) : string  = 
@@ -10825,7 +10865,7 @@ let package_output ({format; in_source } : spec) output=
          es6_global_prefix  
        else assert false)
   in
-  (Bsb_config.proj_rel @@ prefix output )
+  (Bsb_config.build_artifacts_dir @@ prefix output)
 
 (**
     [get_list_of_output_js specs "src/hi/hello"]
@@ -11739,8 +11779,9 @@ let (//) = Ext_path.combine
 
 let sourcedirs_meta = ".sourcedirs.json"
 
-let generate_sourcedirs_meta cwd (res : Bsb_file_groups.t) = 
-  let ochan = open_out_bin (cwd // Bsb_config.lib_bs // sourcedirs_meta) in
+let generate_sourcedirs_meta cwd (res : Bsb_file_groups.t) =
+  Bsb_log.error "@{<error>sourcedirs_meta path: %s}@." (cwd // Bsb_config.lib_bs // sourcedirs_meta);
+  let ochan = open_out_bin ((Bsb_build_util.get_build_artifacts_location cwd true) // Bsb_config.lib_bs // sourcedirs_meta) in
   let v = 
     Ext_json_noloc.(
       kvs [
@@ -11834,11 +11875,11 @@ let config_file_bak = "bsconfig.json.bak"
 let get_list_string = Bsb_build_util.get_list_string
 let (//) = Ext_path.combine
 let current_package : Bsb_pkg_types.t = Global Bs_version.package_name
-let resolve_package cwd  package_name = 
+let resolve_package cwd package_name top =
   let x =  Bsb_pkg.resolve_bs_package ~cwd package_name  in
   {
     Bsb_config_types.package_name ;
-    package_install_path = x // Bsb_config.lib_ocaml
+    package_install_path = (Bsb_build_util.get_build_artifacts_location x top) // Bsb_config.lib_ocaml
   }
 
 
@@ -12027,7 +12068,10 @@ let interpret_json
           | Some config -> 
             Bsb_exception.config_error config 
               "expect .bs.js or .js string here"
-    in   
+    in
+    Bsb_log.error
+        "@{<error>current_package: %s @}@."
+        (Bsb_pkg_types.to_string current_package);
     (* The default situation is empty *)
     (match String_map.find_opt map Bsb_build_schemas.use_stdlib with      
      | Some (False _) -> 
@@ -12035,14 +12079,8 @@ let interpret_json
      | None 
      | Some _ ->
         begin
-          Bsb_log.error
-              "@{<error>current_package: %s @}@."
-              (Bsb_pkg_types.to_string current_package);
           let stdlib_path = 
               Bsb_pkg.resolve_bs_package ~cwd current_package in
-          Bsb_log.error
-              "@{<error>stdlib_path: %s @}@."
-              stdlib_path;
           let json_spec = 
               Ext_json_parse.parse_json_from_file 
               (Filename.concat stdlib_path Literals.package_json) in 
@@ -12064,9 +12102,6 @@ let interpret_json
             | _ -> assert false);
             let lib_ocaml = try Sys.getenv "OCAMLLIB" with
             | Not_found -> stdlib_path // Bsb_config.lib_ocaml in
-            Bsb_log.error
-              "@{<error>lib_ocaml: %s @}@."
-              Bsb_config.lib_ocaml;
             built_in_package := Some {
               Bsb_config_types.package_name = current_package;
               package_install_path = lib_ocaml;
@@ -12122,12 +12157,12 @@ let interpret_json
         |> ignore
       end)
 
-    |? (Bsb_build_schemas.bs_dependencies, `Arr (fun s -> bs_dependencies :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> resolve_package cwd (Bsb_pkg_types.string_as_package s))))
+    |? (Bsb_build_schemas.bs_dependencies, `Arr (fun s -> bs_dependencies :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> resolve_package cwd (Bsb_pkg_types.string_as_package s) false)))
     |? (Bsb_build_schemas.bs_dev_dependencies,
         `Arr (fun s ->
             if not  not_dev then 
               bs_dev_dependencies
-              :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> resolve_package cwd (Bsb_pkg_types.string_as_package s)))
+              :=  Ext_list.map (Bsb_build_util.get_list_string s) (fun s -> resolve_package cwd (Bsb_pkg_types.string_as_package s) false))
        )
 
     (* More design *)
@@ -12184,7 +12219,7 @@ let interpret_json
             ~namespace
             x in 
         if generate_watch_metadata then
-          Bsb_watcher_gen.generate_sourcedirs_meta cwd res ;     
+          Bsb_watcher_gen.generate_sourcedirs_meta (Bsb_build_util.get_build_artifacts_location cwd true) res ;
         begin match List.sort Ext_file_pp.interval_compare  res.intervals with
           | [] -> ()
           | queue ->
@@ -12938,6 +12973,8 @@ let postbuild = "postbuild"
 let g_ns = "g_ns" 
 
 let warnings = "warnings"
+
+let build_artifacts_dir = "build_artifacts_dir"
 
 let gentypeconfig = "gentypeconfig"
 
@@ -13972,12 +14009,11 @@ let output_ninja_and_namespace_map
       gentype_config; 
     } : Bsb_config_types.t) : unit 
   =
-  let cwd = try Sys.getenv "cur__install" with
-  | Not_found -> cwd in
   let custom_rules = Bsb_ninja_rule.make_custom_rules generators in 
   let bsc = bsc_dir // bsc_exe in   (* The path to [bsc.exe] independent of config  *)
   let bsdep = bsc_dir // bsb_helper_exe in (* The path to [bsb_heler.exe] *)
-  let cwd_lib_bs = cwd // Bsb_config.lib_bs in 
+  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd true in
+  let cwd_lib_bs = build_artifacts_dir // Bsb_config.lib_bs in 
   let ppx_flags = Bsb_build_util.ppx_flags ppx_files in
   let refmt_flags = String.concat Ext_string.single_space refmt_flags in
   let oc = open_out_bin (cwd_lib_bs // Literals.build_ninja) in          
@@ -14031,7 +14067,8 @@ let output_ninja_and_namespace_map
            bs_dev_dependencies
            (fun x -> x.package_install_path));  
         Bsb_ninja_global_vars.g_ns , g_ns_flg ; 
-        Bsb_build_schemas.bsb_dir_group, "0"  (*TODO: avoid name conflict in the future *)
+        Bsb_build_schemas.bsb_dir_group, "0";  (*TODO: avoid name conflict in the future *)
+        Bsb_ninja_global_vars.build_artifacts_dir, build_artifacts_dir;
       |] oc 
   in        
   let  bs_groups, bsc_lib_dirs, static_resources =
@@ -14107,7 +14144,7 @@ let output_ninja_and_namespace_map
       ~output:Literals.build_ninja ;
   Ext_option.iter  namespace (fun ns -> 
       let namespace_dir =     
-        cwd // Bsb_config.lib_bs  in
+        build_artifacts_dir // Bsb_config.lib_bs  in
       Bsb_namespace_map_gen.output 
         ~dir:namespace_dir ns
         bs_file_groups; 
@@ -14200,12 +14237,11 @@ let regenerate_ninja
     ~generate_watch_metadata 
     ~forced cwd bsc_dir
   : Bsb_config_types.t option =
-  let cwd = try Sys.getenv "cur__install" with
-  | Not_found -> cwd in
-  let output_deps = cwd // Bsb_config.lib_bs // bsdeps in
+  let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd true in
+  let output_deps = build_artifacts_dir // Bsb_config.lib_bs // bsdeps in
   let check_result  =
     Bsb_ninja_check.check 
-      ~cwd  
+      ~cwd:build_artifacts_dir
       ~forced ~file:output_deps in
   Bsb_log.info
     "@{<info>BSB check@} build spec : %a @." Bsb_ninja_check.pp_check_result check_result ;
@@ -14218,24 +14254,24 @@ let regenerate_ninja
   | Bsb_source_directory_changed  
   | Other _ -> 
     if check_result = Bsb_bsc_version_mismatch then begin 
-      Bsb_log.info "@{<info>Different compiler version@}: clean current repo";
-      Bsb_clean.clean_self bsc_dir cwd; 
-    end ; 
-    Bsb_build_util.mkp (cwd // Bsb_config.lib_bs); 
+      Bsb_log.info "@{<info>Different compiler version@}: clean current repo@";
+      Bsb_clean.clean_self bsc_dir build_artifacts_dir; 
+    end ;
+    Bsb_build_util.mkp (build_artifacts_dir // Bsb_config.lib_bs); 
     let config = 
       Bsb_config_parse.interpret_json 
         ~override_package_specs
         ~bsc_dir
         ~generate_watch_metadata
         ~not_dev
-        cwd in 
-    Bsb_merlin_gen.merlin_file_gen ~cwd
-      (bsc_dir // bsppx_exe) config;       
+        cwd in
+    Bsb_merlin_gen.merlin_file_gen ~cwd:cwd
+      (bsc_dir // bsppx_exe) config;
     Bsb_ninja_gen.output_ninja_and_namespace_map 
-      ~cwd ~bsc_dir ~not_dev config ;         
+      ~cwd:cwd ~bsc_dir ~not_dev config ;         
     (* PR2184: we still need record empty dir 
         since it may add files in the future *)  
-    Bsb_ninja_check.record ~cwd ~file:output_deps 
+    Bsb_ninja_check.record ~cwd:cwd ~file:output_deps 
       (Literals.bsconfig_json::config.globbed_dirs) ;
     Some config 
 
@@ -17232,15 +17268,20 @@ let (//) = Ext_path.combine
 (** TODO: create the animation effect 
     logging installed files
 *)
-let install_targets cwd (config : Bsb_config_types.t option) =  
+let install_targets cwd (config : Bsb_config_types.t option) =
+  print_endline ("install_targets - cwd: " ^ cwd);
   let install ~destdir file = 
-     Bsb_file.install_if_exists ~destdir file  |> ignore
+    print_endline ("install_targets - file: " ^ file);
+    Bsb_file.install_if_exists ~destdir file  |> ignore
   in
   let install_filename_sans_extension destdir namespace x = 
     let x = 
       match namespace with 
       | None -> x 
-      | Some ns -> Ext_namespace.make ~ns x in 
+      | Some ns -> Ext_namespace.make ~ns x in
+    print_endline ("destdir: " ^ destdir);
+    print_endline ("cwd: " ^ cwd);
+    print_endline ("x: " ^ x);
     install ~destdir (cwd // x ^  Literals.suffix_ml) ;
     install ~destdir (cwd // x ^  Literals.suffix_re) ;
     install ~destdir (cwd // x ^ Literals.suffix_mli) ;
@@ -17251,12 +17292,16 @@ let install_targets cwd (config : Bsb_config_types.t option) =
     install ~destdir (cwd // Bsb_config.lib_bs//x ^ Literals.suffix_cmti) ;
 
   in   
-  Ext_option.iter config (fun {files_to_install; namespace; package_name} -> 
-      let destdir = cwd // Bsb_config.lib_ocaml in (* lib is already there after building, so just mkdir [lib/ocaml] *)
-      if not @@ Sys.file_exists destdir then begin Unix.mkdir destdir 0o777  end;
+  Ext_option.iter config (fun {files_to_install; namespace; package_name} ->
+      let top = match package_name with
+      | "react-lite" -> true
+      | _ -> false in
+      let destdir = (Bsb_build_util.get_build_artifacts_location cwd top) // Bsb_config.lib_ocaml in (* lib is already there after building, so just mkdir [lib/ocaml] *)
+      print_endline ("destdir: " ^ destdir ^ " package_name: " ^ package_name);
+      if not @@ Sys.file_exists destdir then begin Unix.mkdir destdir 0o777 end;
       begin
         Bsb_log.info "@{<info>Installing started@}@.";
-        begin match namespace with 
+        begin match namespace with
           | None -> ()
           | Some x -> 
             install_filename_sans_extension destdir None  x
@@ -17268,26 +17313,28 @@ let install_targets cwd (config : Bsb_config_types.t option) =
 
 
 let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
-
+  print_endline ("build_bs_deps - cwd: " ^ cwd);
   let bsc_dir = Bsb_build_util.get_bsc_dir ~cwd in
   let vendor_ninja = bsc_dir // "ninja.exe" in
   let args = 
     if Ext_array.is_empty ninja_args then [|vendor_ninja|] 
     else Array.append [|vendor_ninja|] ninja_args
   in 
-  Bsb_build_util.walk_all_deps  cwd (fun {top; cwd} ->
+  print_endline ("args: " ^ (Array.fold_left (fun acc s -> acc ^ s) "" args));
+  Bsb_build_util.walk_all_deps cwd (fun {top; cwd} ->
       if not top then
-        begin 
+        begin
+          let build_artifacts_dir = Bsb_build_util.get_build_artifacts_location cwd top in
           let config_opt = Bsb_ninja_regen.regenerate_ninja ~not_dev:true
               ~generate_watch_metadata:false
               ~override_package_specs:(Some deps) 
               ~forced:true
-              cwd bsc_dir  in (* set true to force regenrate ninja file so we have [config_opt]*)
-          let cwd = try Sys.getenv "cur__install" with
-          | Not_found -> cwd in
+              cwd bsc_dir in (* set true to force regenrate ninja file so we have [config_opt]*)
+
+          print_endline ("config_opt - done - cwd: " ^ build_artifacts_dir);
           let command = 
             {Bsb_unix.cmd = vendor_ninja;
-             cwd = cwd // Bsb_config.lib_bs;
+             cwd = build_artifacts_dir // Bsb_config.lib_bs;
              args 
             } in     
           let eid =
@@ -17300,7 +17347,8 @@ let build_bs_deps cwd (deps : Bsb_package_specs.t) (ninja_args : string array) =
              Note that we can check if ninja print "no work to do", 
              then don't need reinstall more
           *)
-          install_targets cwd config_opt;
+          print_endline ("pre-install_targets: " ^ cwd);
+          install_targets build_artifacts_dir config_opt;
         end
     )
 
@@ -17316,6 +17364,7 @@ let make_world_deps cwd (config : Bsb_config_types.t option) (ninja_args : strin
       *)
       Bsb_config_parse.package_specs_from_bsconfig ()
     | Some config -> config.package_specs in
+  Bsb_log.info "build_bs_deps - cwd: %s@." cwd;
   build_bs_deps cwd deps ninja_args
 end
 module Bsb_main : sig 
@@ -17418,22 +17467,22 @@ let exec_command_then_exit  command =
   exit (Sys.command command ) 
 
 (* Execute the underlying ninja build call, then exit (as opposed to keep watching) *)
-let ninja_command_exit  vendor_ninja ninja_args  =
+let ninja_command_exit cwd vendor_ninja ninja_args  =
   let ninja_args_len = Array.length ninja_args in
   if Ext_sys.is_windows_or_cygwin then
     let path_ninja = Filename.quote vendor_ninja in 
     exec_command_then_exit 
       (if ninja_args_len = 0 then      
          Ext_string.inter3
-           path_ninja "-C" Bsb_config.lib_bs
+           path_ninja "-C" (cwd // Bsb_config.lib_bs)
        else   
          let args = 
            Array.append 
-             [| path_ninja ; "-C"; Bsb_config.lib_bs|]
+             [| path_ninja ; "-C"; (cwd // Bsb_config.lib_bs)|]
              ninja_args in 
          Ext_string.concat_array Ext_string.single_space args)
   else
-    let ninja_common_args = [|"ninja.exe"; "-C"; Bsb_config.lib_bs |] in 
+    let ninja_common_args = [|"ninja.exe"; "-C"; (cwd // Bsb_config.lib_bs) |] in 
     let args = 
       if ninja_args_len = 0 then ninja_common_args else 
         Array.append ninja_common_args ninja_args in 
@@ -17465,7 +17514,7 @@ let program_exit () =
 
 (* see discussion #929, if we catch the exception, we don't have stacktrace... *)
 let () =
-
+  Bsb_build_util.build_artifacts_dir := Sys.getenv_opt "cur__install";
   let vendor_ninja = bsc_dir // "ninja.exe" in
   try begin 
     match Sys.argv with 
@@ -17474,8 +17523,7 @@ let () =
         ~generate_watch_metadata:true
         ~forced:false 
         cwd bsc_dir |> ignore;
-      ninja_command_exit  vendor_ninja [||] 
-
+      ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja [||]
     | argv -> 
       begin
         match Ext_array.find_and_split argv Ext_string.equal separator with
@@ -17506,7 +17554,8 @@ let () =
                      ~not_dev:false 
                      ~forced:force_regenerate cwd bsc_dir  in
                  if make_world then begin
-                   Bsb_world.make_world_deps cwd config_opt [||]
+                    Bsb_log.info "@{<info>make_world:@} %s@." cwd;
+                    Bsb_world.make_world_deps cwd config_opt [||]
                  end;
                  if !watch_mode then begin
                    program_exit ()
@@ -17516,7 +17565,7 @@ let () =
                       [bsb -regen ]
                    *)
                  end else if make_world then begin
-                   ninja_command_exit  vendor_ninja [||] 
+                   ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja [||] 
                  end)
           end
         | `Split (bsb_args,ninja_args)
@@ -17532,7 +17581,7 @@ let () =
             if !make_world then
               Bsb_world.make_world_deps cwd config_opt ninja_args;
             if !watch_mode then program_exit ()
-            else ninja_command_exit  vendor_ninja ninja_args 
+            else ninja_command_exit (Bsb_build_util.get_build_artifacts_location cwd true) vendor_ninja ninja_args
           end
       end
   end

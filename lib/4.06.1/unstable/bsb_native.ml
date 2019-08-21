@@ -1140,7 +1140,7 @@ let uncapitalize_ascii =
 
 
  
-let lowercase_ascii = String.lowercase_ascii
+let lowercase_ascii = String.lowercase_ascii_ascii
 
 
 

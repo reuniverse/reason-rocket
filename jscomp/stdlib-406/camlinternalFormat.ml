@@ -1435,7 +1435,7 @@ let convert_float fconv prec x =
       | _ -> '-' in
     let str = hexstring_of_float x prec sign in
     begin match fconv with
-    | Float_H | Float_pH | Float_sH -> String.uppercase_ascii str
+    | Float_H | Float_pH | Float_sH -> String.uppercase_ascii_ascii str
     | _ -> str
     end
   | _ ->
@@ -2784,15 +2784,7 @@ let fmt_ebb_of_string ?legacy_behavior str =
     if str_ind = end_ind then unexpected_end_of_format end_ind;
     match str.[str_ind] with
     | '0' .. '9' as c ->
-      let new_acc = acc * 10 + (int_of_char c - int_of_char '0') in
-#if BS then      
-#else
-      if new_acc > Sys.max_string_length then
-        failwith_message
-          "invalid format %S: integer %d is greater than the limit %d"
-          str new_acc Sys.max_string_length
-      else
-#end      
+      let new_acc = acc * 10 + (int_of_char c - int_of_char '0') in 
         parse_positive (str_ind + 1) end_ind new_acc
     | _ -> str_ind, acc
 
